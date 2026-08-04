@@ -21,6 +21,7 @@ export class ImageProcessingService {
   }
 
   async createVariants(buffer: Buffer, contentType: string): Promise<ImageVariantResult[]> {
+    // Only public images receive generated renditions; medical documents are preserved unchanged.
     if (!this.enabled() || !contentType.startsWith('image/')) return [];
     const maxWidth = this.config.getOrThrow<number>('upload.imageMaxWidth');
     const maxHeight = this.config.getOrThrow<number>('upload.imageMaxHeight');

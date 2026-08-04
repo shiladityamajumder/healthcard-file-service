@@ -65,6 +65,7 @@ import { FilesService } from '../services/files.service';
   required: false,
   description: 'Trusted acting user/service UUID.',
 })
+// This service is intended to sit behind the internal gateway; identity headers are not client authentication.
 @UseGuards(InternalServiceGuard)
 @Controller('files')
 export class FilesController {
@@ -155,6 +156,7 @@ export class FilesController {
     @Body() dto: CreatePresignedUploadDto,
     @Headers() headers: Record<string, string | string[] | undefined>,
   ): Promise<Record<string, unknown>> {
+    // The gateway supplies the idempotency header; the client cannot choose a storage key directly.
     const name = this.config.getOrThrow<AppHeaders>('app.headers').idempotencyKey;
     const raw = headers[name];
     const key = Array.isArray(raw) ? raw[0] : raw;

@@ -40,6 +40,7 @@ export class NoopFileScannerService implements FileScanner, OnModuleInit {
   }
 
   async scan(_input: FileScanInput): Promise<FileScanResult> {
+    // Development placeholder only: MIME checks do not inspect content for malware.
     return {
       clean: true,
       scanner: 'noop-development-scanner',

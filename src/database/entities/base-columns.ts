@@ -21,6 +21,7 @@ export abstract class RecordColumns {
 }
 
 export abstract class AuditColumns extends RecordColumns {
+  // Soft deletion preserves audit history while keeping normal queries free of retired records.
   @Column({ name: 'is_deleted', type: 'boolean', default: false })
   isDeleted!: boolean;
 

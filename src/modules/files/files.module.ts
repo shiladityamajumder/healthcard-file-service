@@ -20,6 +20,7 @@ import { ResourceMappingService } from './services/resource-mapping.service';
 
 @Module({
   imports: [
+    // These entities map to tables provisioned by healthcare_db; TypeORM only uses them at runtime.
     TypeOrmModule.forFeature([
       FileObjectEntity,
       FileUploadSessionEntity,
@@ -45,6 +46,7 @@ import { ResourceMappingService } from './services/resource-mapping.service';
   ],
   controllers: [FilesController],
   providers: [
+    // Keep one request-context store shared by controllers and services in this module.
     RequestContextService,
     FilesService,
     FileValidationService,

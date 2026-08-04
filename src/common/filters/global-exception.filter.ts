@@ -32,6 +32,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<Response>();
     const context = this.contextService.get();
+    // Return stable envelopes while logging only safe identifiers and exception types.
     const mapped = this.mapException(exception);
 
     if (mapped.statusCode >= 500) {
@@ -122,6 +123,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     if (exception instanceof QueryFailedError) {
+      // Normalize driver-specific connectivity/schema errors without exposing SQL or connection details.
       const driverCode = this.queryDriverCode(exception);
       if (
         driverCode.startsWith('08') ||

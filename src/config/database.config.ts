@@ -1,6 +1,7 @@
 import { registerAs } from '@nestjs/config';
 
 export const databaseConfig = registerAs('database', () => ({
+  // This service connects to an existing database; healthcare_db owns its schema lifecycle.
   url: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL === 'true',
   sslRejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false',

@@ -4,6 +4,7 @@ import type { RequestContext } from '../interfaces/request-context.interface';
 
 @Injectable()
 export class RequestContextService {
+  // AsyncLocalStorage keeps trusted request metadata available across async service calls.
   private readonly storage = new AsyncLocalStorage<RequestContext>();
 
   run<T>(context: RequestContext, callback: () => T): T {

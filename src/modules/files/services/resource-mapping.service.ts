@@ -10,6 +10,7 @@ import type {
   ResourceMappingDefinition,
 } from '../interfaces/resource-mapping.interface';
 
+// This allowlist is the only source of SQL identifiers; request input never selects tables or columns.
 const DIRECT = (
   resourceType: ResourceType,
   sourceModel: string,
@@ -34,6 +35,7 @@ const DIRECT = (
   associationKind: 'direct',
 });
 
+// Mappings are verified against healthcare_db and define visibility, category, and association semantics.
 const DEFINITIONS: Record<ResourceType, ResourceMappingDefinition> = {
   [ResourceType.BRAND_LOGO]: DIRECT(
     ResourceType.BRAND_LOGO,
@@ -289,6 +291,7 @@ export class ResourceMappingService implements ResourceMapper {
     category: FileCategory;
     metadata: Record<string, unknown>;
   }): void {
+    // Validate the allowlisted resource before any database query or association write.
     const definition = this.definition(input.resourceType);
     if (!definition.allowedVisibilities.includes(input.visibility)) {
       throw new AppException(
@@ -319,6 +322,7 @@ export class ResourceMappingService implements ResourceMapper {
     const table = definition.existsTable ?? definition.table;
     const condition =
       definition.softDelete && !definition.existsTable ? ' AND is_deleted = false' : '';
+    // Identifiers come only from DEFINITIONS; values remain parameterized below.
     const rows = (await queryRunner.query(
       `SELECT id FROM "${schema}"."${table}" WHERE id = $1${condition} LIMIT 1`,
       [resourceId],
@@ -357,6 +361,7 @@ export class ResourceMappingService implements ResourceMapper {
       await this.updateDirect(queryRunner, definition, resourceId, newFileId, actorId, oldFileId);
       return;
     }
+    // The old file ID is an optimistic guard against overwriting a newer association.
     const result = await queryRunner.query(
       `UPDATE "${definition.schema}"."${definition.table}" SET file_object_id = $1, updated_at = now(), updated_by = $2, row_version = row_version + 1 WHERE file_object_id = $3 RETURNING id`,
       [newFileId, actorId, oldFileId],
@@ -388,6 +393,7 @@ export class ResourceMappingService implements ResourceMapper {
       );
       return;
     }
+    // Associations are cleared before storage cleanup so retries cannot leave stale references active.
     if (definition.softDelete) {
       await queryRunner.query(
         `UPDATE "${definition.schema}"."${definition.table}" SET is_deleted = true, deleted_at = now(), deleted_by = $1, updated_at = now(), updated_by = $1, row_version = row_version + 1 WHERE file_object_id = $2 AND is_deleted = false`,

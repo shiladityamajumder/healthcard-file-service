@@ -92,6 +92,7 @@ export const environmentValidationSchema = Joi.object({
   SWAGGER_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   MAX_HTTP_BODY_SIZE_BYTES: Joi.number().integer().min(1024).default(62914560),
 })
+  // Cross-field checks keep invalid pool and storage policies from reaching application startup.
   .custom((value: Record<string, unknown>, helpers: Joi.CustomHelpers) => {
     const min = Number(value.DATABASE_POOL_MIN);
     const max = Number(value.DATABASE_POOL_MAX);

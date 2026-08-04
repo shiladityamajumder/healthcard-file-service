@@ -20,6 +20,7 @@ import type { ResourceMappingService } from '../src/modules/files/services/resou
 
 describe('FilesService compensation', () => {
   it('deletes the S3 object when database persistence fails', async () => {
+    // S3 upload and database persistence are separate systems; this verifies the compensating delete path.
     const queryRunner = {
       connect: jest.fn().mockResolvedValue(undefined),
       release: jest.fn().mockResolvedValue(undefined),

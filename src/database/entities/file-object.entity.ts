@@ -2,6 +2,7 @@ import { Column, Entity, Index, Unique } from 'typeorm';
 import { FileObjectStatus, FileVisibility, MalwareScanStatus } from '../../common/enums/file.enums';
 import { AuditColumns } from './base-columns';
 
+// Maps the existing platform.file_objects table; schema changes belong to healthcare_db.
 @Entity({ schema: 'platform', name: 'file_objects' })
 @Unique('file_bucket_object_key', ['bucket', 'objectKey'])
 @Index('ix_platform_file_objects_owner', ['ownerType', 'ownerId'])
@@ -16,6 +17,7 @@ export class FileObjectEntity extends AuditColumns {
   bucket!: string;
 
   @Column({ name: 'object_key', type: 'varchar', length: 512 })
+  // The opaque S3 identifier is persisted for private access; never expose it as a public URL.
   objectKey!: string;
 
   @Column({ name: 'owner_type', type: 'varchar', length: 64 })
@@ -64,6 +66,7 @@ export class FileObjectEntity extends AuditColumns {
   malwareScanStatus!: MalwareScanStatus;
 
   @Column({ name: 'public_url', type: 'varchar', length: 2048, nullable: true })
+  // Populated only for public objects; private downloads use short-lived presigned URLs instead.
   publicUrl!: string | null;
 
   @Column({ name: 'available_at', type: 'timestamptz', nullable: true })

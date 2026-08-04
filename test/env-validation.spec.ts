@@ -1,6 +1,7 @@
 import { environmentValidationSchema } from '../src/config/env.validation';
 
 describe('environment validation', () => {
+  // Keep the fixture minimal so failures identify database/storage policy regressions clearly.
   const minimum = {
     DATABASE_URL: 'postgresql://app_user:secret@localhost:5432/healthcare',
     AWS_REGION: 'ap-south-1',
@@ -25,6 +26,7 @@ describe('environment validation', () => {
   });
 
   it('rejects a non-PostgreSQL URL scheme without echoing credentials', () => {
+    // Validation errors must identify the policy failure without reflecting the submitted secret.
     const result = environmentValidationSchema.validate({
       ...minimum,
       DATABASE_URL: 'mysql://sensitive-user:sensitive-password@database.internal/healthcare',

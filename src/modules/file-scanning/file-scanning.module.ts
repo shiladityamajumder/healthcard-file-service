@@ -9,6 +9,7 @@ import { NoopFileScannerService } from './noop-file-scanner.service';
   providers: [
     NoopFileScannerService,
     {
+      // Bind behind an interface so production can replace the development scanner without changing callers.
       provide: FILE_SCANNER,
       useExisting: NoopFileScannerService,
     },

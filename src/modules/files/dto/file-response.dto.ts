@@ -11,6 +11,7 @@ export class FileVariantResponseDto {
   fileId!: string;
 
   @ApiPropertyOptional({ nullable: true })
+  // Variants are public renditions only; private source objects are never represented by stable URLs.
   publicUrl!: string | null;
 }
 
@@ -40,6 +41,7 @@ export class FileResponseDto {
   originalFilename!: string;
 
   @ApiPropertyOptional({ nullable: true })
+  // Private files return null here and are downloaded through a short-lived presigned URL.
   publicUrl!: string | null;
 
   @ApiProperty({ example: 'available' })

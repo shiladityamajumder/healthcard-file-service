@@ -6,6 +6,7 @@ import { FilesService } from '../src/modules/files/services/files.service';
 
 describe('Swagger document generation', () => {
   it('generates the API error response schema without circular references', async () => {
+    // Use the real controller decorators so DTO regressions fail before the docs UI is served.
     const moduleRef = await Test.createTestingModule({
       controllers: [FilesController],
       providers: [

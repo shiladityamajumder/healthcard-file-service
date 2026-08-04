@@ -22,6 +22,7 @@ export class HealthController {
   @ApiOperation({ summary: 'Process liveness' })
   @ApiOkResponse({ schema: { example: { status: 'alive' } } })
   liveness(): Record<string, unknown> {
+    // Liveness answers only whether this process is running; dependency checks belong to readiness.
     return { status: 'alive' };
   }
 
@@ -38,8 +39,10 @@ export class HealthController {
   })
   @ApiServiceUnavailableResponse({ description: 'At least one dependency is unavailable.' })
   async readiness(): Promise<Record<string, unknown>> {
+    // PostgreSQL and S3 are checked independently so one failed dependency does not hide the other.
     let postgresql = false;
     try {
+      // Read-only connectivity probe; readiness must never create or inspect schema objects.
       await this.dataSource.query('SELECT 1');
       postgresql = true;
     } catch {

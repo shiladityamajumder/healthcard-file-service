@@ -28,6 +28,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiSuccessEnve
     return next.handle().pipe(
       map((data: T) => {
         const requestContext = this.contextService.get();
+        // Keep operational IDs in the envelope without exposing dependency credentials or file contents.
         return {
           success: true,
           data,

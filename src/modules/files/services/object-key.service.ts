@@ -29,6 +29,7 @@ export class ObjectKeyService {
     const year = now.getUTCFullYear().toString();
     const month = String(now.getUTCMonth() + 1).padStart(2, '0');
     const filename = sanitizeFilename(input.filename);
+    // Private keys are opaque; public keys retain a sanitized name for friendlier stable URLs.
     const objectName =
       input.visibility === FileVisibility.PRIVATE
         ? `${uuidv4()}${extname(filename).toLowerCase()}`
@@ -42,6 +43,7 @@ export class ObjectKeyService {
     const filename = sourceKey.slice(lastSlash + 1);
     const dot = filename.lastIndexOf('.');
     const stem = dot > 0 ? filename.slice(0, dot) : filename;
+    // Keep variants beside their source under a predictable, server-controlled prefix.
     return `${directory}/variants/${this.segment(variantName)}/${stem}-${this.segment(variantName)}${extension}`;
   }
 

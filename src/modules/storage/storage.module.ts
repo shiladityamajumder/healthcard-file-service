@@ -3,6 +3,7 @@ import { STORAGE_SERVICE } from './interfaces/storage.interface';
 import { S3StorageService } from './providers/s3-storage.service';
 
 @Module({
+  // Consumers depend on the storage contract, allowing S3-compatible providers to be swapped safely.
   providers: [S3StorageService, { provide: STORAGE_SERVICE, useExisting: S3StorageService }],
   exports: [STORAGE_SERVICE, S3StorageService],
 })

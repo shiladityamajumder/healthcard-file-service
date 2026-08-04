@@ -59,6 +59,7 @@ export class S3StorageService implements StorageService {
       forcePathStyle: this.forcePathStyle,
       maxAttempts: config.getOrThrow<number>('aws.maxAttempts'),
       requestHandler: new NodeHttpHandler({
+        // Bound both connection and request time so dependency failures do not hang uploads.
         connectionTimeout: config.getOrThrow<number>('aws.connectionTimeoutMs'),
         requestTimeout: config.getOrThrow<number>('aws.requestTimeoutMs'),
       }),
@@ -89,6 +90,7 @@ export class S3StorageService implements StorageService {
           SSEKMSKeyId: this.encryption === 'aws:kms' ? this.kmsKeyId : undefined,
         }),
       );
+      // ACLs are intentionally omitted; bucket policy or CloudFront controls public access.
       return {
         bucket,
         key: input.key,
@@ -117,6 +119,7 @@ export class S3StorageService implements StorageService {
         ServerSideEncryption: this.encryption,
         SSEKMSKeyId: this.encryption === 'aws:kms' ? this.kmsKeyId : undefined,
       });
+      // The server-generated key and checksum headers constrain what the client can upload.
       const url = await getSignedUrl(this.client, command, { expiresIn: input.expiresInSeconds });
       const cacheControl =
         input.visibility === FileVisibility.PRIVATE
@@ -156,6 +159,7 @@ export class S3StorageService implements StorageService {
         409,
       );
     }
+    // Permanent public URLs are never issued for private objects; return only a short-lived signature.
     try {
       const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
       const url = await getSignedUrl(
@@ -235,6 +239,7 @@ export class S3StorageService implements StorageService {
     if (keys.length === 0) {
       return { deleted: [], failed: [] };
     }
+    // S3 can report per-key failures inside a successful batch response, so preserve both lists.
     try {
       const result = await this.client.send(
         new DeleteObjectsCommand({
@@ -287,6 +292,7 @@ export class S3StorageService implements StorageService {
     destinationVisibility: FileVisibility,
     destinationKey: string,
   ): Promise<void> {
+    // Copy first, then delete; a failed copy must leave the source object intact.
     await this.copy(sourceVisibility, sourceKey, destinationVisibility, destinationKey);
     await this.delete(sourceVisibility, sourceKey);
   }
@@ -298,6 +304,7 @@ export class S3StorageService implements StorageService {
       return `${configured.replace(/\/$/, '')}/${encodedKey}`;
     }
     if (this.endpoint && this.forcePathStyle) {
+      // Path-style URLs are required by local MinIO/LocalStack endpoints.
       return `${this.endpoint.replace(/\/$/, '')}/${this.publicBucket}/${encodedKey}`;
     }
     return `https://${this.publicBucket}.s3.${this.region}.amazonaws.com/${encodedKey}`;
@@ -308,6 +315,7 @@ export class S3StorageService implements StorageService {
   }
 
   async checkConnectivity(): Promise<{ publicBucket: boolean; privateBucket: boolean }> {
+    // Readiness probes bucket access only; no bucket or object is created as a side effect.
     const check = async (bucket: string): Promise<boolean> => {
       try {
         await this.client.send(new HeadBucketCommand({ Bucket: bucket }));

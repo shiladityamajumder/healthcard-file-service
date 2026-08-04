@@ -9,6 +9,7 @@ describe('HealthController', () => {
   });
 
   it('returns readiness when database and buckets are healthy', async () => {
+    // Mock S3 so this test isolates the read-only PostgreSQL probe and dependency aggregation.
     const database = {
       query: jest.fn().mockResolvedValue([{ value: 1 }]),
     } as unknown as DataSource;
@@ -25,6 +26,7 @@ describe('HealthController', () => {
   });
 
   it('normalizes database connection failures and still checks S3 independently', async () => {
+    // Include a credential-bearing failure internally to prove it never crosses the readiness boundary.
     const connectionUrl =
       'postgresql://sensitive-user:sensitive-password@database.internal/healthcare';
     const database = {

@@ -1,4 +1,5 @@
 services:
+  # MinIO is local object-storage support; PostgreSQL remains an external dependency.
   minio:
     image: minio/minio:RELEASE.2025-07-23T15-54-02Z
     command: server /data --console-address ":9001"
@@ -41,6 +42,7 @@ services:
     env_file:
       - .env
     environment:
+      # Supply DATABASE_URL from the host environment or deployment secret.
       DATABASE_URL: ${DATABASE_URL}
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-change-this-local-secret}

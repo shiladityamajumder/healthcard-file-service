@@ -29,6 +29,7 @@ describe('FileValidationService', () => {
   });
 
   it('rejects MIME-extension mismatches', () => {
+    // Client-provided MIME and extension must agree before content inspection or persistence.
     expect(() =>
       service.validateMetadata('report.jpg', 'application/pdf', 512, FileCategory.MEDICAL_REPORT),
     ).toThrow(AppException);

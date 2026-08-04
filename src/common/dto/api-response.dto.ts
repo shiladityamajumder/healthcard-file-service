@@ -37,6 +37,7 @@ export class ApiErrorResponseDto {
   @ApiProperty({ example: false })
   success!: false;
 
+  // Errors intentionally carry no success payload; keeping this explicit avoids Swagger inferring a model.
   @ApiProperty({ type: Object, nullable: true, example: null })
   data!: null;
 

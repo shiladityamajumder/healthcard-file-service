@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
+# Release validation intentionally exercises the same safety checks used in CI.
 npm run build
 npm run lint
 npm test

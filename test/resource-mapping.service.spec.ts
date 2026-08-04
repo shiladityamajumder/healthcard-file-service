@@ -44,6 +44,7 @@ describe('ResourceMappingService', () => {
   });
 
   it('rejects unknown association metadata fields', () => {
+    // Request metadata cannot smuggle SQL identifiers or select an unapproved association target.
     expect(() =>
       service.validate({
         resourceType: ResourceType.BRAND_LOGO,

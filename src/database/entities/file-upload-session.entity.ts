@@ -2,6 +2,7 @@ import { Column, Entity, Index, Unique } from 'typeorm';
 import { FileUploadStatus } from '../../common/enums/file.enums';
 import { RecordColumns } from './base-columns';
 
+// Existing idempotency state for presigned uploads; no session table is created at runtime.
 @Entity({ schema: 'platform', name: 'file_upload_sessions' })
 @Unique('file_upload_scope_key', ['scope', 'idempotencyKey'])
 @Index('ix_platform_file_upload_sessions_file', ['fileObjectId'])
@@ -17,6 +18,7 @@ export class FileUploadSessionEntity extends RecordColumns {
   scope!: string;
 
   @Column({ name: 'idempotency_key', type: 'varchar', length: 128 })
+  // Uniqueness is scoped per resource so safe retries cannot collide across unrelated uploads.
   idempotencyKey!: string;
 
   @Column({ name: 'upload_method', type: 'varchar', length: 32, default: 'single' })

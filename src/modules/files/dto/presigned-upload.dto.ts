@@ -26,6 +26,7 @@ export class CreatePresignedUploadDto extends FileAssociationDto {
 }
 
 export class CompletePresignedUploadDto {
+  // Completion accepts only the server-issued session; object keys remain server-controlled.
   @ApiProperty({ format: 'uuid' })
   @IsUUID('4')
   uploadSessionId!: string;

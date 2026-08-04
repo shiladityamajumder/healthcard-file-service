@@ -10,11 +10,13 @@ import {
 
 export const createTypeOrmOptions = (config: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
+  // Pass the validated URL through unchanged; credentials must never be reconstructed or logged here.
   url: config.getOrThrow<string>('database.url'),
   ssl: config.getOrThrow<boolean>('database.ssl')
     ? { rejectUnauthorized: config.getOrThrow<boolean>('database.sslRejectUnauthorized') }
     : false,
   autoLoadEntities: true,
+  // healthcare_db is the sole migration authority; this service must never change database objects.
   synchronize: false,
   migrationsRun: false,
   dropSchema: false,

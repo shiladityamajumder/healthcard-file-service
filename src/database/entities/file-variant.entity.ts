@@ -1,6 +1,7 @@
 import { Column, Entity, Index, Unique } from 'typeorm';
 import { AuditColumns } from './base-columns';
 
+// Links generated renditions to their source; the partial index ignores soft-deleted links.
 @Entity({ schema: 'platform', name: 'file_variants' })
 @Index('uq_platform_file_variants_source_name_active', ['sourceFileId', 'variantName'], {
   unique: true,

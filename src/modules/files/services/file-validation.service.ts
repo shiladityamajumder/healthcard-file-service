@@ -74,6 +74,7 @@ export class FileValidationService {
       throw new AppException('EMPTY_FILE', 'The uploaded file is empty.', 422);
     }
     const basic = this.validateMetadata(file.originalname, file.mimetype, file.size, category);
+    // Declared MIME metadata is not trusted; inspect the bytes before persistence or S3 upload.
     const detected = await fromBuffer(file.buffer);
     if (detected) {
       const detectedMime = this.detectedMimeForExtension(
@@ -103,6 +104,7 @@ export class FileValidationService {
       return { ...basic, contentType: this.canonicalMime(detectedMime) };
     }
 
+    // Plain text has no reliable magic signature, so retain the explicit allowlisted exception.
     if (basic.contentType !== 'text/plain') {
       throw new AppException(
         'FILE_CONTENT_UNRECOGNIZED',
@@ -142,6 +144,7 @@ export class FileValidationService {
         allowedMimeTypes: policy.mimeTypes,
       });
     }
+    // Normalize names before deriving extensions; raw client filenames must not become object keys.
     const sanitizedFilename = sanitizeFilename(filename);
     const extension = getExtension(sanitizedFilename);
     if (!extension || !policy.extensions.includes(extension)) {

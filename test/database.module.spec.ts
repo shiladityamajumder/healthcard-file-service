@@ -41,6 +41,7 @@ describe('database TypeORM configuration', () => {
   });
 
   it('does not expose or invoke schema-management callbacks', () => {
+    // Configuration is the contract here; no test should need to open a database connection.
     const synchronize = jest.fn();
     const runMigrations = jest.fn();
     const options = createTypeOrmOptions(createConfig());

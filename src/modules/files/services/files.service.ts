@@ -142,6 +142,7 @@ export class FilesService {
     dto: CreatePresignedUploadDto,
     idempotencyKey: string,
   ): Promise<Record<string, unknown>> {
+    // Reserve metadata first; the client receives only a server-generated key and signed request.
     if (!idempotencyKey || idempotencyKey.length > 128) {
       throw new AppException(
         'IDEMPOTENCY_KEY_REQUIRED',
@@ -198,6 +199,7 @@ export class FilesService {
         throw new AppException('UPLOAD_SESSION_CORRUPT', 'The upload session is invalid.', 409);
       }
       this.assertIdempotencyFingerprint(existingFile, idempotencyFingerprint);
+      // Reusing a key is safe only when the complete request fingerprint matches.
       if (existing.status === FileUploadStatus.COMPLETED) {
         return {
           uploadSessionId: existing.id,
@@ -242,6 +244,7 @@ export class FilesService {
     };
 
     let created: { file: FileObjectEntity; session: FileUploadSessionEntity };
+    // S3 is outside the transaction, so completion failures must transition both records explicitly.
     try {
       created = await this.dataSource.transaction(async (manager: EntityManager) => {
         const fileEntity = manager.create(FileObjectEntity, {
@@ -363,6 +366,7 @@ export class FilesService {
     }
 
     const metadata = this.readMetadata(file);
+    // HeadObject revalidates size, content type, and checksum before metadata becomes available.
     const head = await this.storage.headObject(file.accessType, file.objectKey);
     const expectedSha256 = metadata.expectedSha256;
     if (
@@ -571,6 +575,7 @@ export class FilesService {
       throw new AppException('FILE_NOT_AVAILABLE', 'The file is not available for download.', 409);
     }
     const expirySeconds = this.config.getOrThrow<number>('aws.presignedDownloadExpirySeconds');
+    // Signed URLs are generated only for clean private files and are never persisted or logged.
     const signed = await this.storage.createPresignedDownload(
       file.accessType,
       file.objectKey,
@@ -604,6 +609,7 @@ export class FilesService {
     const activeVariantLink = await this.variants.findOne({
       where: { variantFileId: file.id, isDeleted: false },
     });
+    // Database association/soft-delete happens first; S3 cleanup is a separate, retryable step.
     if (!file.isDeleted) {
       await this.dataSource.transaction(async (manager: EntityManager) => {
         if (activeVariantLink) {
@@ -686,6 +692,7 @@ export class FilesService {
       replaceExisting: true,
       metadata: metadata.associationMetadata,
     };
+    // The new object is committed before the old object is deleted; cleanup cannot undo a valid swap.
     return this.performServerUpload(upload, dto, oldFile);
   }
 
@@ -718,6 +725,7 @@ export class FilesService {
     dto: FileAssociationDto,
     explicitOldFile: FileObjectEntity | null = null,
   ): Promise<Record<string, unknown>> {
+    // Validate resource policy, file bytes, and malware status before creating any S3 object.
     this.resourceMapper.validate({
       resourceType: dto.resourceType,
       resourceId: dto.resourceId,
@@ -781,6 +789,7 @@ export class FilesService {
     const uploadedObjects: UploadedObjectState[] = [];
     let databaseCommitted = false;
 
+    // S3 cannot participate in the database transaction; compensate uploaded objects on failure.
     try {
       const sourceUpload = await this.storage.upload({
         visibility: dto.visibility,
@@ -949,6 +958,7 @@ export class FilesService {
       });
 
       databaseCommitted = true;
+      // Old-object cleanup is intentionally after commit; a cleanup failure must not roll back the replacement.
       if (oldFile) await this.deleteStorageAfterReplacement(oldFile);
       return this.mapFile(await this.getFileEntity(saved.id));
     } catch (error) {
@@ -1086,6 +1096,7 @@ export class FilesService {
         await this.storage.delete(variant.accessType, variant.objectKey);
       }
     } catch (error) {
+      // The replacement is already valid; log cleanup failure for reconciliation instead of undoing it.
       this.logger.warn({
         message: 'Old object cleanup failed after successful replacement',
         fileId: file.id,
@@ -1159,6 +1170,7 @@ export class FilesService {
       shouldDelete = true;
     });
     if (!shouldDelete) return false;
+    // Locking makes completion idempotent under concurrent retries; only the winner deletes the object.
     try {
       await this.storage.delete(visibility, key);
     } catch (error) {
@@ -1214,6 +1226,7 @@ export class FilesService {
   }
 
   private async compensateDelete(objects: UploadedObjectState[]): Promise<void> {
+    // Compensation is best-effort because S3 and PostgreSQL cannot share one atomic transaction.
     for (const object of objects.reverse()) {
       try {
         await this.storage.delete(object.visibility, object.key);

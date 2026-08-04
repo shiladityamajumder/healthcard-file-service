@@ -19,6 +19,7 @@ export class RequestContextMiddleware implements NestMiddleware {
   ) {}
 
   use(request: Request, response: Response, next: NextFunction): void {
+    // These identity headers are trusted only when injected by the private API Gateway.
     const headers = this.config.getOrThrow<AppHeaders>('app.headers');
     const incomingRequestId = headerValue(request, headers.requestId);
     const incomingCorrelationId = headerValue(request, headers.correlationId);
@@ -39,6 +40,7 @@ export class RequestContextMiddleware implements NestMiddleware {
       .map((value) => value.trim())
       .filter(Boolean);
 
+    // Keep request IDs and trusted identity available to services without passing them through every method.
     (request as Request & { requestContext?: RequestContext }).requestContext = {
       requestId,
       correlationId,

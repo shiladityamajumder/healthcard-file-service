@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
+// Append-only audit mapping for private download decisions and signed URL issuance.
 @Entity({ schema: 'platform', name: 'file_access_events' })
 @Index('ix_platform_file_access_events_file_time', ['fileObjectId', 'createdAt'])
 @Index('ix_platform_file_access_events_actor_time', ['actorUserId', 'createdAt'])

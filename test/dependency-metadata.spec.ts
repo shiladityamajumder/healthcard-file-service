@@ -29,6 +29,7 @@ const methodTypes = (target: object, method: string): unknown[] =>
 
 describe('Nest runtime dependency metadata', () => {
   it('retains runtime class tokens for constructor injection', () => {
+    // Decorator metadata must retain value imports; type-only imports would break Nest resolution at runtime.
     expect(constructorTypes(ImageProcessingService)).toEqual([ConfigService]);
     expect(constructorTypes(RequestContextMiddleware)).toEqual([
       RequestContextService,

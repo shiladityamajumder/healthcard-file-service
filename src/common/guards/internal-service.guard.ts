@@ -13,6 +13,7 @@ export class InternalServiceGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const expected = this.config.get<string>('app.internalServiceSecret') ?? '';
     if (!expected) {
+      // Local deployments may omit the shared secret; production should protect this at the gateway too.
       return true;
     }
 
@@ -20,6 +21,7 @@ export class InternalServiceGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const supplied = request.headers[headerName];
     const value = Array.isArray(supplied) ? supplied[0] : supplied;
+    // A shared secret authenticates the internal hop, not the caller's full authorization policy.
     if (!value || !this.secureEqual(value, expected)) {
       throw new AppException(
         'INTERNAL_SERVICE_AUTH_FAILED',

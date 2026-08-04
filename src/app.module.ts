@@ -46,6 +46,7 @@ import { HealthModule } from './modules/health/health.module';
               return value && uuidPattern.test(value) ? value : randomUUID();
             },
             redact: {
+              // Signed URLs, credentials, and original sensitive names are never operational log data.
               paths: [
                 'req.headers.authorization',
                 'req.headers.cookie',

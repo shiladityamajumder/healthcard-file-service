@@ -20,6 +20,7 @@ function config(overrides: Record<string, unknown> = {}): ConfigService {
 
 describe('S3StorageService public URL', () => {
   it('prefers CloudFront and encodes key segments', () => {
+    // URL construction is tested without contacting S3; the client is deliberately left unconfigured.
     const service = new S3StorageService(
       config({ 'aws.cloudFrontPublicBaseUrl': 'https://cdn.example.com/' }),
     );
@@ -29,6 +30,7 @@ describe('S3StorageService public URL', () => {
   });
 
   it('supports path-style local endpoints', () => {
+    // MinIO and LocalStack commonly require path-style addressing for local development.
     const service = new S3StorageService(
       config({ 'aws.endpoint': 'http://minio:9000', 'aws.forcePathStyle': true }),
     );

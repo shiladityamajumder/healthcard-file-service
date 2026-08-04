@@ -35,6 +35,7 @@ describe('GlobalExceptionFilter', () => {
   });
 
   it('does not include database credentials in logs or error responses', () => {
+    // Error handling must redact connection details even when a driver includes them in its message.
     const json = jest.fn();
     const status = jest.fn().mockReturnValue({ setHeader: jest.fn().mockReturnValue({ json }) });
     const host = {
