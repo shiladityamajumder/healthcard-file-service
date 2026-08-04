@@ -20,17 +20,32 @@ describe('HealthController', () => {
       ready: true,
       checks: { postgresql: true, publicBucket: true, privateBucket: true },
     });
+    expect(database.query).toHaveBeenCalledTimes(1);
+    expect(database.query).toHaveBeenCalledWith('SELECT 1');
   });
 
-
-  it('returns the auth-service-compatible readiness error code', async () => {
+  it('normalizes database connection failures and still checks S3 independently', async () => {
+    const connectionUrl =
+      'postgresql://sensitive-user:sensitive-password@database.internal/healthcare';
     const database = {
-      query: jest.fn().mockRejectedValue(new Error('database unavailable')),
+      query: jest.fn().mockRejectedValue(new Error(`connection failed for ${connectionUrl}`)),
     } as unknown as DataSource;
     const storage = {
-      checkConnectivity: jest.fn().mockResolvedValue({ publicBucket: false, privateBucket: false }),
+      checkConnectivity: jest.fn().mockResolvedValue({ publicBucket: true, privateBucket: true }),
     } as unknown as S3StorageService;
     const controller = new HealthController(database, storage);
-    await expect(controller.readiness()).rejects.toMatchObject({ code: 'SERVICE_NOT_READY' });
+    const readiness = controller.readiness();
+    await expect(readiness).rejects.toMatchObject({
+      code: 'SERVICE_NOT_READY',
+      message: 'One or more required dependencies are unavailable.',
+      details: {
+        ready: false,
+        checks: { postgresql: false, publicBucket: true, privateBucket: true },
+      },
+    });
+    await expect(readiness).rejects.not.toMatchObject({
+      message: expect.stringContaining(connectionUrl),
+    });
+    expect(storage.checkConnectivity).toHaveBeenCalledTimes(1);
   });
 });

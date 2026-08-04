@@ -1,7 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import type { CanActivate, ExecutionContext } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
+import type { AppHeaders } from '../../config/app.config';
 import { AppException } from '../exceptions/app.exception';
 
 @Injectable()
@@ -14,12 +16,16 @@ export class InternalServiceGuard implements CanActivate {
       return true;
     }
 
-    const headerName = this.config.getOrThrow<Record<string, string>>('app.headers').internalService;
+    const headerName = this.config.getOrThrow<AppHeaders>('app.headers').internalService;
     const request = context.switchToHttp().getRequest<Request>();
     const supplied = request.headers[headerName];
     const value = Array.isArray(supplied) ? supplied[0] : supplied;
     if (!value || !this.secureEqual(value, expected)) {
-      throw new AppException('INTERNAL_SERVICE_AUTH_FAILED', 'Internal service authentication failed.', 401);
+      throw new AppException(
+        'INTERNAL_SERVICE_AUTH_FAILED',
+        'Internal service authentication failed.',
+        401,
+      );
     }
     return true;
   }

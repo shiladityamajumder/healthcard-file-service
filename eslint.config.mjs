@@ -15,7 +15,8 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
+      // Nest relies on emitted decorator metadata from runtime class imports for DI and DTOs.
+      '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },

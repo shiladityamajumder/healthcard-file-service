@@ -32,7 +32,11 @@ export interface ResourceMappingDefinition {
 export interface ResourceMapper {
   definition(resourceType: ResourceType): ResourceMappingDefinition;
   validate(input: Omit<ResourceAssociationInput, 'fileId' | 'actorId'>): void;
-  assertResourceExists(queryRunner: QueryRunner, resourceType: ResourceType, resourceId: string): Promise<void>;
+  assertResourceExists(
+    queryRunner: QueryRunner,
+    resourceType: ResourceType,
+    resourceId: string,
+  ): Promise<void>;
   associate(queryRunner: QueryRunner, input: ResourceAssociationInput): Promise<void>;
   replaceAssociation(
     queryRunner: QueryRunner,
@@ -43,6 +47,15 @@ export interface ResourceMapper {
     metadata: Record<string, unknown>,
     actorId: string | null,
   ): Promise<void>;
-  clearAssociation(queryRunner: QueryRunner, resourceType: ResourceType, fileId: string, actorId: string | null): Promise<void>;
-  currentFileId(queryRunner: QueryRunner, resourceType: ResourceType, resourceId: string): Promise<string | null>;
+  clearAssociation(
+    queryRunner: QueryRunner,
+    resourceType: ResourceType,
+    fileId: string,
+    actorId: string | null,
+  ): Promise<void>;
+  currentFileId(
+    queryRunner: QueryRunner,
+    resourceType: ResourceType,
+    resourceId: string,
+  ): Promise<string | null>;
 }

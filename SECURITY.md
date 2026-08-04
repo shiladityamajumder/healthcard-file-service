@@ -38,7 +38,15 @@ Content sniffing does not prove a file is safe. Replace the no-op scanner before
 
 ## Logging restrictions
 
-Pino redacts authorization/cookie/internal-secret headers and common signed URL fields. Application logging avoids file content, AWS credentials, tokens, medical data, and sensitive filenames. File IDs, safe object keys, resource types, and error codes may be logged for operations.
+Pino redacts authorization/cookie/internal-secret headers and common signed URL fields. `DATABASE_URL` is never logged, and validation/readiness errors never contain its hostname, username, password, or other connection details. Application logging avoids file content, AWS credentials, tokens, medical data, and sensitive filenames. File IDs, safe object keys, resource types, and error codes may be logged for operations.
+
+## PostgreSQL least privilege
+
+Inject `DATABASE_URL` from a secret manager and keep real credentials out of source control. The database must already exist and must be migrated by `healthcare_db`; TypeORM synchronization, automatic migrations, and schema dropping are permanently disabled in this service.
+
+Use a dedicated runtime role that does not own the database or schemas. Grant only database `CONNECT`, schema `USAGE`, and the specific table-level `SELECT`/`INSERT`/`UPDATE`/`DELETE` operations required by `DATABASE_MAPPING.md` (plus sequence access only where actually necessary). Never grant the runtime role superuser, `CREATEDB`, `CREATEROLE`, database/schema `CREATE`, object ownership, or `ALTER`/`DROP` privileges. Keep the migration role separate and unavailable to the running service.
+
+Enable TLS for managed/production databases and leave certificate verification enabled. `DATABASE_SSL_REJECT_UNAUTHORIZED=false` is intended only for explicitly accepted, controlled exceptions.
 
 The included scanner is a development adapter only. Startup validation blocks it when `NODE_ENV=production` unless `ALLOW_NOOP_SCANNER_IN_PRODUCTION=true` is deliberately set. That override is an explicit risk acknowledgement, not a production recommendation; replace the provider with ClamAV, GuardDuty Malware Protection for S3, or an asynchronous scanning worker.
 
@@ -76,10 +84,7 @@ Replace account, bucket, and prefix values.
       "Sid": "ReadinessBucketChecks",
       "Effect": "Allow",
       "Action": "s3:ListBucket",
-      "Resource": [
-        "arn:aws:s3:::healthcare-public",
-        "arn:aws:s3:::healthcare-private"
-      ],
+      "Resource": ["arn:aws:s3:::healthcare-public", "arn:aws:s3:::healthcare-private"],
       "Condition": {
         "StringLike": {
           "s3:prefix": ["production/public/*", "production/private/*"]

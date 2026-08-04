@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import { FileVisibility } from '../src/common/enums/file.enums';
-import { FileAssociationDto } from '../src/modules/files/dto/file-association.dto';
+import type { FileAssociationDto } from '../src/modules/files/dto/file-association.dto';
 import { FilesController } from '../src/modules/files/controllers/files.controller';
 import { FileCategory } from '../src/modules/files/enums/file-category.enum';
 import { ResourceType } from '../src/modules/files/enums/resource-type.enum';

@@ -7,15 +7,23 @@ export class ErrorBodyDto {
   @ApiProperty({ example: 'The requested file was not found.' })
   message!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: Object, nullable: true })
   details!: unknown;
 }
 
 export class ResponseMetaDto {
-  @ApiProperty({ example: '6c6f95f7-5750-4be9-9a92-a76c30d69f0b', nullable: true })
+  @ApiProperty({
+    type: String,
+    example: '6c6f95f7-5750-4be9-9a92-a76c30d69f0b',
+    nullable: true,
+  })
   request_id!: string | null;
 
-  @ApiProperty({ example: '6c6f95f7-5750-4be9-9a92-a76c30d69f0b', nullable: true })
+  @ApiProperty({
+    type: String,
+    example: '6c6f95f7-5750-4be9-9a92-a76c30d69f0b',
+    nullable: true,
+  })
   correlation_id!: string | null;
 
   @ApiProperty({ example: 'v1' })
@@ -29,12 +37,12 @@ export class ApiErrorResponseDto {
   @ApiProperty({ example: false })
   success!: false;
 
-  @ApiProperty({ nullable: true, example: null })
+  @ApiProperty({ type: Object, nullable: true, example: null })
   data!: null;
 
-  @ApiProperty({ type: ErrorBodyDto })
+  @ApiProperty({ type: () => ErrorBodyDto })
   error!: ErrorBodyDto;
 
-  @ApiProperty({ type: ResponseMetaDto })
+  @ApiProperty({ type: () => ResponseMetaDto })
   meta!: ResponseMetaDto;
 }

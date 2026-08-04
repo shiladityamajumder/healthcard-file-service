@@ -47,8 +47,7 @@ export class S3StorageService implements StorageService {
     this.cloudFrontBaseUrl = config.get<string>('aws.cloudFrontPublicBaseUrl');
     this.publicBaseUrl = config.get<string>('aws.publicBaseUrl');
     this.encryption = (config.get<string>('aws.serverSideEncryption') || undefined) as
-      | ServerSideEncryption
-      | undefined;
+      ServerSideEncryption | undefined;
     this.kmsKeyId = config.get<string>('aws.kmsKeyId');
     const accessKeyId = config.get<string>('aws.accessKeyId');
     const secretAccessKey = config.get<string>('aws.secretAccessKey');
@@ -221,7 +220,11 @@ export class S3StorageService implements StorageService {
         new DeleteObjectCommand({ Bucket: this.getBucket(visibility), Key: key }),
       );
     } catch (error) {
-      throw this.storageError('FILE_DELETE_FAILED', 'The storage object could not be deleted.', error);
+      throw this.storageError(
+        'FILE_DELETE_FAILED',
+        'The storage object could not be deleted.',
+        error,
+      );
     }
   }
 

@@ -317,7 +317,8 @@ export class ResourceMappingService implements ResourceMapper {
     const definition = this.definition(resourceType);
     const schema = definition.existsSchema ?? definition.schema;
     const table = definition.existsTable ?? definition.table;
-    const condition = definition.softDelete && !definition.existsTable ? ' AND is_deleted = false' : '';
+    const condition =
+      definition.softDelete && !definition.existsTable ? ' AND is_deleted = false' : '';
     const rows = (await queryRunner.query(
       `SELECT id FROM "${schema}"."${table}" WHERE id = $1${condition} LIMIT 1`,
       [resourceId],
@@ -330,7 +331,13 @@ export class ResourceMappingService implements ResourceMapper {
   async associate(queryRunner: QueryRunner, input: ResourceAssociationInput): Promise<void> {
     const definition = this.definition(input.resourceType);
     if (definition.associationKind === 'direct') {
-      await this.updateDirect(queryRunner, definition, input.resourceId, input.fileId, input.actorId);
+      await this.updateDirect(
+        queryRunner,
+        definition,
+        input.resourceId,
+        input.fileId,
+        input.actorId,
+      );
       return;
     }
     await this.insertLink(queryRunner, input);
@@ -441,7 +448,10 @@ export class ResourceMappingService implements ResourceMapper {
     }
   }
 
-  private async insertLink(queryRunner: QueryRunner, input: ResourceAssociationInput): Promise<void> {
+  private async insertLink(
+    queryRunner: QueryRunner,
+    input: ResourceAssociationInput,
+  ): Promise<void> {
     switch (input.resourceType) {
       case ResourceType.PRODUCT_MEDIA: {
         const variantId = this.optionalUuid(input.metadata.variantId);
@@ -525,18 +535,17 @@ export class ResourceMappingService implements ResourceMapper {
         );
         break;
       default:
-        throw new AppException('RESOURCE_MAPPING_ERROR', 'The resource mapping is incomplete.', 500);
+        throw new AppException(
+          'RESOURCE_MAPPING_ERROR',
+          'The resource mapping is incomplete.',
+          500,
+        );
     }
   }
 
   private validateMetadata(resourceType: ResourceType, metadata: Record<string, unknown>): void {
     const allowedKeys: Partial<Record<ResourceType, readonly string[]>> = {
-      [ResourceType.PRODUCT_MEDIA]: [
-        'variantId',
-        'altText',
-        'displayOrder',
-        'isPrimary',
-      ],
+      [ResourceType.PRODUCT_MEDIA]: ['variantId', 'altText', 'displayOrder', 'isPrimary'],
       [ResourceType.INSURANCE_CLAIM_DOCUMENT]: ['documentType'],
       [ResourceType.SUPPORT_TICKET_ATTACHMENT]: ['ticketMessageId'],
       [ResourceType.NOTIFICATION_ATTACHMENT]: [
@@ -606,8 +615,15 @@ export class ResourceMappingService implements ResourceMapper {
 
   private optionalUuid(value: unknown): string | null {
     if (value === undefined || value === null || value === '') return null;
-    if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
-      throw new AppException('INVALID_RESOURCE_METADATA', 'A resource metadata UUID is invalid.', 422);
+    if (
+      typeof value !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ) {
+      throw new AppException(
+        'INVALID_RESOURCE_METADATA',
+        'A resource metadata UUID is invalid.',
+        422,
+      );
     }
     return value;
   }
@@ -616,7 +632,11 @@ export class ResourceMappingService implements ResourceMapper {
     if (value === undefined || value === null || value === '') return fallback;
     const parsed = typeof value === 'number' ? value : Number(value);
     if (!Number.isInteger(parsed) || parsed < minimum) {
-      throw new AppException('INVALID_RESOURCE_METADATA', 'A resource metadata integer is invalid.', 422);
+      throw new AppException(
+        'INVALID_RESOURCE_METADATA',
+        'A resource metadata integer is invalid.',
+        422,
+      );
     }
     return parsed;
   }
@@ -626,6 +646,10 @@ export class ResourceMappingService implements ResourceMapper {
     if (typeof value === 'boolean') return value;
     if (value === 'true') return true;
     if (value === 'false') return false;
-    throw new AppException('INVALID_RESOURCE_METADATA', 'A resource metadata boolean is invalid.', 422);
+    throw new AppException(
+      'INVALID_RESOURCE_METADATA',
+      'A resource metadata boolean is invalid.',
+      422,
+    );
   }
 }

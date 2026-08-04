@@ -18,6 +18,10 @@ export function parseJsonObject(value: unknown): unknown {
     }
     return parsed;
   } catch {
-    throw new AppException('INVALID_JSON_METADATA', 'The metadata field must be a valid JSON object.', 422);
+    throw new AppException(
+      'INVALID_JSON_METADATA',
+      'The metadata field must be a valid JSON object.',
+      422,
+    );
   }
 }

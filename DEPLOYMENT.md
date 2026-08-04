@@ -3,9 +3,31 @@
 ## Local
 
 1. Copy `.env.example` to `.env`.
-2. Start PostgreSQL and MinIO.
-3. Apply all `healthcare_db` Alembic migrations.
-4. Run `npm install`, `npm run build`, and `npm run start:prod`.
+2. Provision an existing PostgreSQL database and apply all `healthcare_db` Alembic migrations.
+3. Set `DATABASE_URL` to that database and configure TLS as appropriate.
+4. Start MinIO or configure S3.
+5. Run `npm install`, `npm run build`, and `npm run start:prod`.
+
+The file service never provisions the database and never creates schemas/tables or runs migrations. TypeORM synchronization, migration execution, and schema dropping are permanently disabled. Invalid connection configuration fails startup with a sanitized configuration error; an unavailable database causes bounded connection retries followed by startup failure.
+
+## Docker Compose database connections
+
+The default Compose file does not contain PostgreSQL. It passes the externally supplied `DATABASE_URL` into the file-service container and retains MinIO for local object-storage development.
+
+```env
+# PostgreSQL running on the host
+DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/healthcare
+
+# PostgreSQL running as another Compose service on the same network
+DATABASE_URL=postgresql://postgres:postgres@postgres-service-name:5432/healthcare
+
+# Managed PostgreSQL
+DATABASE_URL=postgresql://username:password@database-host:5432/healthcare
+DATABASE_SSL=true
+DATABASE_SSL_REJECT_UNAUTHORIZED=true
+```
+
+The connection strings are placeholders. Supply real values from a secret manager or deployment secret, never source control.
 
 ## Docker image
 
@@ -38,11 +60,19 @@ docker run --rm --env-file .env -p 3000:3000 healthcare-file-service:1.0.0
 
 ## PostgreSQL
 
-- Migrations are applied only by `healthcare_db` as a separate release step.
+- The database must already exist and all required schemas/tables must be applied by `healthcare_db` as a separate release step before this service starts.
+- Connect only through `DATABASE_URL`; do not deploy the obsolete individual host, port, database, username, or password settings.
+- This service never creates, migrates, synchronizes, alters, or drops database objects.
 - Use PgBouncer when connection fan-out warrants it.
 - Set `DATABASE_POOL_MAX` per replica so total connections remain below database capacity.
-- Use TLS in production.
+- Use TLS in production. Keep `DATABASE_SSL_REJECT_UNAUTHORIZED=true`; disable certificate verification only for a controlled environment with an explicit risk decision.
 - Confirm search paths/permissions include all mapped schemas; entities use fully qualified schema names.
+
+### Recommended production privilege model
+
+Use separate migration and runtime roles. Only the `healthcare_db` migration role should own schemas or hold database/schema creation and DDL permissions. The file-service runtime role should have `CONNECT` on the database and `USAGE` on only the mapped schemas. Grant table-level `SELECT`, `INSERT`, `UPDATE`, and `DELETE` only where the documented file workflows require them, and sequence `USAGE`/`SELECT` only if an accessed table actually uses a sequence. Do not grant `CREATE` on the database or schemas, ownership, superuser, `CREATEDB`, `CREATEROLE`, or broad default privileges. Review the exact table access list in `DATABASE_MAPPING.md`.
+
+The readiness query needs no schema modification privilege. If PostgreSQL or S3 is unavailable, `/ready` returns a normalized 503 response containing only dependency status booleans.
 
 ## S3 and CloudFront
 

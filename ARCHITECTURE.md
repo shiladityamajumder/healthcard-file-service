@@ -23,6 +23,12 @@ src/
 
 Controllers depend on `FilesService`. `FilesService` depends on abstract storage/scanner contracts, validation, object-key generation, resource mapping, and TypeORM. AWS commands remain inside `S3StorageService`. Controllers contain no database or S3 business logic.
 
+## Database boundary
+
+The service receives a validated PostgreSQL connection URL through `DATABASE_URL` and passes it directly to TypeORM. The target database must already exist, with all required schemas and tables applied by `healthcare_db`. TypeORM entity metadata maps those existing objects but is never used to create or modify them: `synchronize`, `migrationsRun`, and `dropSchema` are all permanently disabled.
+
+The application contains no migration runner or database/schema/table creation path. Startup stops cleanly after bounded retries when PostgreSQL is unavailable. Readiness uses only `SELECT 1`, normalizes failures to dependency booleans, and checks S3 independently.
+
 ## Request flow
 
 1. Pino creates the HTTP request log.

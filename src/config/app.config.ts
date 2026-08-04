@@ -1,5 +1,15 @@
 import { registerAs } from '@nestjs/config';
 
+export interface AppHeaders {
+  internalService: string;
+  requestId: string;
+  correlationId: string;
+  userId: string;
+  actorId: string;
+  roles: string;
+  idempotencyKey: string;
+}
+
 export const appConfig = registerAs('app', () => ({
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 3000),
@@ -17,7 +27,9 @@ export const appConfig = registerAs('app', () => ({
   maxHttpBodySizeBytes: Number(process.env.MAX_HTTP_BODY_SIZE_BYTES ?? 62_914_560),
   allowNoopScannerInProduction: process.env.ALLOW_NOOP_SCANNER_IN_PRODUCTION === 'true',
   headers: {
-    internalService: (process.env.TRUSTED_GATEWAY_HEADER_NAME ?? 'x-internal-service-key').toLowerCase(),
+    internalService: (
+      process.env.TRUSTED_GATEWAY_HEADER_NAME ?? 'x-internal-service-key'
+    ).toLowerCase(),
     requestId: (process.env.REQUEST_ID_HEADER_NAME ?? 'x-request-id').toLowerCase(),
     correlationId: (process.env.CORRELATION_ID_HEADER_NAME ?? 'x-correlation-id').toLowerCase(),
     userId: (process.env.USER_ID_HEADER_NAME ?? 'x-user-id').toLowerCase(),

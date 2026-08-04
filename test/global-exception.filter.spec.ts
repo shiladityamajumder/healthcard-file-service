@@ -1,4 +1,4 @@
-import type { ArgumentsHost } from '@nestjs/common';
+import { Logger, type ArgumentsHost } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { AppException } from '../src/common/exceptions/app.exception';
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter';
@@ -9,7 +9,9 @@ describe('GlobalExceptionFilter', () => {
     const json = jest.fn();
     const status = jest.fn().mockReturnValue({ setHeader: jest.fn().mockReturnValue({ json }) });
     const host = {
-      switchToHttp: () => ({ getResponse: () => ({ status }) }),
+      switchToHttp: (): { getResponse: () => { status: typeof status } } => ({
+        getResponse: (): { status: typeof status } => ({ status }),
+      }),
     } as unknown as ArgumentsHost;
     const context = {
       get: () => ({ requestId: 'request-id', correlationId: 'correlation-id' }),
@@ -30,5 +32,45 @@ describe('GlobalExceptionFilter', () => {
         meta: expect.objectContaining({ api_version: 'v1' }),
       }),
     );
+  });
+
+  it('does not include database credentials in logs or error responses', () => {
+    const json = jest.fn();
+    const status = jest.fn().mockReturnValue({ setHeader: jest.fn().mockReturnValue({ json }) });
+    const host = {
+      switchToHttp: (): { getResponse: () => { status: typeof status } } => ({
+        getResponse: (): { status: typeof status } => ({ status }),
+      }),
+    } as unknown as ArgumentsHost;
+    const context = {
+      get: (): { requestId: string; correlationId: string } => ({
+        requestId: 'request-id',
+        correlationId: 'correlation-id',
+      }),
+    } as unknown as RequestContextService;
+    const config = {
+      get: (): string => 'v1',
+    } as unknown as ConfigService;
+    const databaseUrl =
+      'postgresql://sensitive-user:sensitive-password@database.internal:5432/healthcare';
+    const errorLog = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
+    new GlobalExceptionFilter(context, config).catch(
+      new Error(`Database connection failed: ${databaseUrl}`),
+      host,
+    );
+
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain('sensitive-user');
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain('sensitive-password');
+    expect(JSON.stringify(json.mock.calls)).not.toContain('database.internal');
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'An unexpected server error occurred.',
+        }),
+      }),
+    );
+    errorLog.mockRestore();
   });
 });

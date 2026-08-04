@@ -1,23 +1,34 @@
 import Joi from 'joi';
 
 export const environmentValidationSchema = Joi.object({
-  NODE_ENV: Joi.string().valid('development', 'test', 'staging', 'production').default('development'),
+  NODE_ENV: Joi.string()
+    .valid('development', 'test', 'staging', 'production')
+    .default('development'),
   PORT: Joi.number().port().default(3000),
   PROJECT_NAME: Joi.string().default('Healthcare File Service'),
   APP_VERSION: Joi.string().default('1.0.0'),
   API_PREFIX: Joi.string().default('api'),
   API_VERSION: Joi.string().default('v1'),
-  LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent').default('info'),
+  LOG_LEVEL: Joi.string()
+    .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
+    .default('info'),
 
-  DATABASE_HOST: Joi.string().required(),
-  DATABASE_PORT: Joi.number().port().default(5432),
-  DATABASE_NAME: Joi.string().required(),
-  DATABASE_USERNAME: Joi.string().required(),
-  DATABASE_PASSWORD: Joi.string().allow('').required(),
+  DATABASE_URL: Joi.string()
+    .uri({ scheme: ['postgresql', 'postgres'] })
+    .required()
+    .messages({
+      'any.required': 'DATABASE_URL is required',
+      'string.empty': 'DATABASE_URL is required',
+      'string.uri':
+        'DATABASE_URL must be a valid PostgreSQL connection URL using the postgresql:// or postgres:// scheme',
+      'string.uriCustomScheme':
+        'DATABASE_URL must be a valid PostgreSQL connection URL using the postgresql:// or postgres:// scheme',
+    }),
   DATABASE_SSL: Joi.boolean().truthy('true').falsy('false').default(false),
-  DATABASE_POOL_MIN: Joi.number().integer().min(0).default(2),
+  DATABASE_SSL_REJECT_UNAUTHORIZED: Joi.boolean().truthy('true').falsy('false').default(true),
+  DATABASE_POOL_MIN: Joi.number().integer().positive().default(2),
   DATABASE_POOL_MAX: Joi.number().integer().min(1).default(10),
-  DATABASE_CONNECT_TIMEOUT_MS: Joi.number().integer().min(100).default(5000),
+  DATABASE_CONNECTION_TIMEOUT_MS: Joi.number().integer().positive().default(10000),
 
   AWS_REGION: Joi.string().required(),
   AWS_ACCESS_KEY_ID: Joi.string().allow('').optional(),
@@ -54,64 +65,84 @@ export const environmentValidationSchema = Joi.object({
   ALLOW_NOOP_SCANNER_IN_PRODUCTION: Joi.boolean().truthy('true').falsy('false').default(false),
 
   INTERNAL_SERVICE_SECRET: Joi.string().allow('').optional(),
-  TRUSTED_GATEWAY_HEADER_NAME: Joi.string().pattern(/^[a-z0-9-]+$/i).default('x-internal-service-key'),
-  REQUEST_ID_HEADER_NAME: Joi.string().pattern(/^[a-z0-9-]+$/i).default('x-request-id'),
-  CORRELATION_ID_HEADER_NAME: Joi.string().pattern(/^[a-z0-9-]+$/i).default('x-correlation-id'),
-  USER_ID_HEADER_NAME: Joi.string().pattern(/^[a-z0-9-]+$/i).default('x-user-id'),
-  ACTOR_ID_HEADER_NAME: Joi.string().pattern(/^[a-z0-9-]+$/i).default('x-actor-id'),
-  ROLES_HEADER_NAME: Joi.string().pattern(/^[a-z0-9-]+$/i).default('x-roles'),
-  IDEMPOTENCY_KEY_HEADER_NAME: Joi.string().pattern(/^[a-z0-9-]+$/i).default('idempotency-key'),
+  TRUSTED_GATEWAY_HEADER_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/i)
+    .default('x-internal-service-key'),
+  REQUEST_ID_HEADER_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/i)
+    .default('x-request-id'),
+  CORRELATION_ID_HEADER_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/i)
+    .default('x-correlation-id'),
+  USER_ID_HEADER_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/i)
+    .default('x-user-id'),
+  ACTOR_ID_HEADER_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/i)
+    .default('x-actor-id'),
+  ROLES_HEADER_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/i)
+    .default('x-roles'),
+  IDEMPOTENCY_KEY_HEADER_NAME: Joi.string()
+    .pattern(/^[a-z0-9-]+$/i)
+    .default('idempotency-key'),
 
   CORS_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
   CORS_ORIGINS: Joi.string().allow('').default(''),
   SWAGGER_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   MAX_HTTP_BODY_SIZE_BYTES: Joi.number().integer().min(1024).default(62914560),
-}).custom((value: Record<string, unknown>, helpers: Joi.CustomHelpers) => {
-  const min = Number(value.DATABASE_POOL_MIN);
-  const max = Number(value.DATABASE_POOL_MAX);
-  if (min > max) {
-    return helpers.error('any.custom', { message: 'DATABASE_POOL_MIN cannot exceed DATABASE_POOL_MAX' });
-  }
-  if (value.AWS_S3_SERVER_SIDE_ENCRYPTION === 'aws:kms' && !value.AWS_S3_KMS_KEY_ID) {
-    return helpers.error('any.custom', { message: 'AWS_S3_KMS_KEY_ID is required for aws:kms' });
-  }
-  try {
-    const parsed = JSON.parse(String(value.UPLOAD_CATEGORY_POLICIES_JSON)) as unknown;
-    if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+})
+  .custom((value: Record<string, unknown>, helpers: Joi.CustomHelpers) => {
+    const min = Number(value.DATABASE_POOL_MIN);
+    const max = Number(value.DATABASE_POOL_MAX);
+    if (min > max) {
       return helpers.error('any.custom', {
-        message: 'UPLOAD_CATEGORY_POLICIES_JSON must be a JSON object',
+        message: 'DATABASE_POOL_MIN cannot exceed DATABASE_POOL_MAX',
       });
     }
-  } catch {
-    return helpers.error('any.custom', { message: 'UPLOAD_CATEGORY_POLICIES_JSON must be valid JSON' });
-  }
-  if (
-    value.AWS_S3_PUBLIC_BUCKET === value.AWS_S3_PRIVATE_BUCKET &&
-    value.AWS_S3_PUBLIC_PREFIX === value.AWS_S3_PRIVATE_PREFIX
-  ) {
-    return helpers.error('any.custom', {
-      message: 'Public and private storage must use different buckets or different prefixes',
-    });
-  }
-  const headerNames = [
-    'TRUSTED_GATEWAY_HEADER_NAME',
-    'REQUEST_ID_HEADER_NAME',
-    'CORRELATION_ID_HEADER_NAME',
-    'USER_ID_HEADER_NAME',
-    'ACTOR_ID_HEADER_NAME',
-    'ROLES_HEADER_NAME',
-    'IDEMPOTENCY_KEY_HEADER_NAME',
-  ].map((name) => String(value[name]).toLowerCase());
-  if (new Set(headerNames).size !== headerNames.length) {
-    return helpers.error('any.custom', {
-      message: 'Configured trusted header names must be unique',
-    });
-  }
-  if (value.NODE_ENV === 'production' && value.ALLOW_NOOP_SCANNER_IN_PRODUCTION !== true) {
-    return helpers.error('any.custom', {
-      message:
-        'The development no-op scanner is blocked in production; integrate a real scanner or explicitly acknowledge the risk',
-    });
-  }
-  return value;
-});
+    if (value.AWS_S3_SERVER_SIDE_ENCRYPTION === 'aws:kms' && !value.AWS_S3_KMS_KEY_ID) {
+      return helpers.error('any.custom', { message: 'AWS_S3_KMS_KEY_ID is required for aws:kms' });
+    }
+    try {
+      const parsed = JSON.parse(String(value.UPLOAD_CATEGORY_POLICIES_JSON)) as unknown;
+      if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+        return helpers.error('any.custom', {
+          message: 'UPLOAD_CATEGORY_POLICIES_JSON must be a JSON object',
+        });
+      }
+    } catch {
+      return helpers.error('any.custom', {
+        message: 'UPLOAD_CATEGORY_POLICIES_JSON must be valid JSON',
+      });
+    }
+    if (
+      value.AWS_S3_PUBLIC_BUCKET === value.AWS_S3_PRIVATE_BUCKET &&
+      value.AWS_S3_PUBLIC_PREFIX === value.AWS_S3_PRIVATE_PREFIX
+    ) {
+      return helpers.error('any.custom', {
+        message: 'Public and private storage must use different buckets or different prefixes',
+      });
+    }
+    const headerNames = [
+      'TRUSTED_GATEWAY_HEADER_NAME',
+      'REQUEST_ID_HEADER_NAME',
+      'CORRELATION_ID_HEADER_NAME',
+      'USER_ID_HEADER_NAME',
+      'ACTOR_ID_HEADER_NAME',
+      'ROLES_HEADER_NAME',
+      'IDEMPOTENCY_KEY_HEADER_NAME',
+    ].map((name) => String(value[name]).toLowerCase());
+    if (new Set(headerNames).size !== headerNames.length) {
+      return helpers.error('any.custom', {
+        message: 'Configured trusted header names must be unique',
+      });
+    }
+    if (value.NODE_ENV === 'production' && value.ALLOW_NOOP_SCANNER_IN_PRODUCTION !== true) {
+      return helpers.error('any.custom', {
+        message:
+          'The development no-op scanner is blocked in production; integrate a real scanner or explicitly acknowledge the risk',
+      });
+    }
+    return value;
+  })
+  .messages({ 'any.custom': '{{#message}}' });

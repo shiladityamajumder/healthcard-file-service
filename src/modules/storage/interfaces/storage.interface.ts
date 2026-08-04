@@ -59,7 +59,10 @@ export interface StorageService {
   ): Promise<{ url: string; expiresAt: Date }>;
   headObject(visibility: FileVisibility, key: string): Promise<HeadObjectResult>;
   delete(visibility: FileVisibility, key: string): Promise<void>;
-  deleteMany(visibility: FileVisibility, keys: string[]): Promise<{ deleted: string[]; failed: string[] }>;
+  deleteMany(
+    visibility: FileVisibility,
+    keys: string[],
+  ): Promise<{ deleted: string[]; failed: string[] }>;
   copy(
     sourceVisibility: FileVisibility,
     sourceKey: string,

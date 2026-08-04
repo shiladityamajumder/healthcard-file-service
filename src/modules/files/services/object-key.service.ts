@@ -4,7 +4,7 @@ import { extname } from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import { FileVisibility } from '../../../common/enums/file.enums';
 import { sanitizeFilename } from '../../../common/utils/filename.util';
-import { ResourceType } from '../enums/resource-type.enum';
+import type { ResourceType } from '../enums/resource-type.enum';
 
 @Injectable()
 export class ObjectKeyService {
@@ -21,8 +21,8 @@ export class ObjectKeyService {
     const environment = this.segment(this.config.get<string>('app.nodeEnv') ?? 'development');
     const prefix = this.segment(
       input.visibility === FileVisibility.PUBLIC
-        ? this.config.get<string>('aws.publicPrefix') ?? 'public'
-        : this.config.get<string>('aws.privatePrefix') ?? 'private',
+        ? (this.config.get<string>('aws.publicPrefix') ?? 'public')
+        : (this.config.get<string>('aws.privatePrefix') ?? 'private'),
     );
     const resourceType = this.segment(input.resourceType);
     const resourceId = this.segment(input.resourceId);

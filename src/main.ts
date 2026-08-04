@@ -6,13 +6,14 @@ import { json, urlencoded } from 'express';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { createHelmetOptions } from './config/http-security.config';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const config = app.get(ConfigService);
   app.useLogger(app.get(Logger));
   app.enableShutdownHooks();
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(helmet(createHelmetOptions(config.getOrThrow<string>('app.nodeEnv'))));
   const maxBody = config.getOrThrow<number>('app.maxHttpBodySizeBytes');
   app.use(json({ limit: maxBody }));
   app.use(urlencoded({ extended: true, limit: maxBody }));
@@ -62,7 +63,10 @@ async function bootstrap(): Promise<void> {
       .setVersion(config.getOrThrow<string>('app.version'))
       .addTag('Files', 'Public/private S3 uploads, downloads, replacement, deletion, and metadata')
       .addTag('Health', 'Liveness and dependency readiness')
-      .addApiKey({ type: 'apiKey', in: 'header', name: 'x-internal-service-key' }, 'internal-service')
+      .addApiKey(
+        { type: 'apiKey', in: 'header', name: 'x-internal-service-key' },
+        'internal-service',
+      )
       .build();
     const document = SwaggerModule.createDocument(app, documentConfig);
     SwaggerModule.setup('docs', app, document, {

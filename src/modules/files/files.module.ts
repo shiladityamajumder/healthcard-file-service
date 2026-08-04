@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { RequestContextService } from '../../common/middleware/request-context.service';
 import {
   FileAccessEventEntity,
   FileObjectEntity,
@@ -43,7 +44,13 @@ import { ResourceMappingService } from './services/resource-mapping.service';
     ImageProcessingModule,
   ],
   controllers: [FilesController],
-  providers: [FilesService, FileValidationService, ObjectKeyService, ResourceMappingService],
-  exports: [FilesService, ResourceMappingService],
+  providers: [
+    RequestContextService,
+    FilesService,
+    FileValidationService,
+    ObjectKeyService,
+    ResourceMappingService,
+  ],
+  exports: [RequestContextService, FilesService, ResourceMappingService],
 })
 export class FilesModule {}

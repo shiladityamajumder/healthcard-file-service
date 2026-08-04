@@ -4,37 +4,33 @@ Validation date: 2026-08-04
 
 ## Environment
 
-- Node.js: `v22.16.0`
-- npm: `10.9.2`
-- Docker CLI: not installed in the build environment
-- npm registry exposed by the environment: internal Artifactory proxy
+- Node.js: `v24.4.1`
+- npm: `11.12.1`
+- Docker: `28.5.1`
 
 ## Requested commands
 
 | Command | Result |
 |---|---|
-| `npm install` | Blocked by the execution environment. The internal npm proxy returned HTTP 404 for public packages, including `@aws-sdk/client-s3`; direct public-registry DNS was unavailable. No `node_modules` directory was produced. |
-| `npm run build` | Not executable after the install failure (`nest: not found`). |
-| `npm run lint` | Not executable after the install failure (`eslint: not found`). |
-| `npm test` | Not executable after the install failure (`jest: not found`). |
-| `docker build` | Not executable because the Docker CLI/daemon is unavailable. |
-| `docker compose config` | Not executable because the Docker CLI is unavailable. |
+| `npm install` | Passed; 801 dependency packages installed and the lockfile was hydrated. npm reported 4 dependency audit findings (1 moderate, 3 high); no automatic or forced dependency changes were applied. |
+| `npm run build` | Passed. |
+| `npm run lint` | Passed with zero warnings. |
+| `npm test` | Passed: 14 suites, 41 tests, including runtime Nest dependency/DTO metadata, Swagger document generation, and environment-specific CSP regression coverage. |
+| `docker compose config --quiet` | Passed. Docker emitted a local user-config access warning, but Compose validation completed successfully. |
 
-## Completed offline checks
+## Database safety checks
 
-- TypeScript syntax/transpile validation passed for all 62 source and test files using TypeScript 5.8.3 available in the execution image.
-- A strict compiler diagnostic scan found no project-internal diagnostics after excluding errors caused solely by unavailable dependency declarations and Node/Jest type packages.
-- `package.json` and `package-lock.json` parse successfully.
-- `docker-compose.yml` parses successfully as YAML.
-- Shell scripts pass `bash -n` syntax validation.
-- Required documentation files are present.
-- `synchronize: true`, `migrationsRun: true`, migration execution, `CREATE TABLE`, and `ALTER TABLE` were not found in `src`.
-- No migration directory or migration files exist.
-- No `.env`, `node_modules`, `dist`, or coverage directory is included.
-- No committed AWS access-key pattern was detected in source/test code.
-- The generated archive contains only the new file-service project.
+- No use of the obsolete split database variables or obsolete timeout name remains outside excluded dependency/build output.
+- `DATABASE_URL` is validated for `postgresql://` and `postgres://` and passed directly to TypeORM.
+- TypeORM explicitly sets `synchronize: false`, `migrationsRun: false`, and `dropSchema: false`.
+- No schema synchronization, migration execution, database/schema/table creation, or table alteration code was found in `src`.
+- No migration files or SQL initialization files exist.
+- Readiness executes exactly `SELECT 1` for PostgreSQL and independently checks S3.
+- Docker Compose contains no PostgreSQL image, service, health check, volume, initialization, credentials, or dependency.
+- Only documented/example PostgreSQL URLs and deliberately fake test URLs are tracked; `.env` is ignored by Git.
+- `docker-compose.yml` parses successfully. The service receives `DATABASE_URL` from the external Compose environment.
 
-## Reproduction on a normal development machine
+## Reproduction
 
 Run from the project root with access to the public npm registry or an correctly configured organizational mirror:
 
@@ -47,8 +43,4 @@ docker compose config
 docker build -t healthcare-file-service:1.0.0 .
 ```
 
-The database-dependent readiness check requires the external `healthcare_db` Alembic migrations to have been applied first.
-
-## Lockfile note
-
-Because dependency resolution could not reach a registry containing the declared packages, the included lockfile records the exact root dependency manifest but could not be hydrated with transitive package integrity entries in this environment. Running `npm install` against a normal npm registry will complete it.
+The database must already exist and the external `healthcare_db` migrations must be applied first. This service does not provision or migrate it. A real ignored `.env` may be used locally, but it must never be committed or populated with production credentials in source control.

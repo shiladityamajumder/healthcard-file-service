@@ -2,7 +2,7 @@
 set -eu
 
 if grep -R --line-number --exclude-dir=node_modules --exclude-dir=dist \
-  -E 'synchronize[[:space:]]*:[[:space:]]*true|migrationsRun[[:space:]]*:[[:space:]]*true|runMigrations\(|createSchema\(|CREATE TABLE|ALTER TABLE' src; then
+  -E 'synchronize[[:space:]]*:[[:space:]]*true|migrationsRun[[:space:]]*:[[:space:]]*true|runMigrations\(|\.synchronize\(|createDatabase\(|createSchema\(|createTable\(|CREATE[[:space:]]+(DATABASE|SCHEMA|TABLE)|ALTER[[:space:]]+TABLE' src; then
   echo "Schema-management code detected." >&2
   exit 1
 fi

@@ -31,6 +31,7 @@ import {
 } from '@nestjs/swagger';
 import { ApiErrorResponseDto } from '../../../common/dto/api-response.dto';
 import { AppException } from '../../../common/exceptions/app.exception';
+import type { AppHeaders } from '../../../config/app.config';
 import { InternalServiceGuard } from '../../../common/guards/internal-service.guard';
 import { BulkDeleteFilesDto } from '../dto/bulk-delete.dto';
 import { FileAssociationDto } from '../dto/file-association.dto';
@@ -39,11 +40,31 @@ import { CompletePresignedUploadDto, CreatePresignedUploadDto } from '../dto/pre
 import { FilesService } from '../services/files.service';
 
 @ApiTags('Files')
-@ApiHeader({ name: 'x-internal-service-key', required: false, description: 'Trusted gateway/service secret when configured.' })
-@ApiHeader({ name: 'x-request-id', required: false, description: 'UUID request identifier; generated when omitted.' })
-@ApiHeader({ name: 'x-correlation-id', required: false, description: 'Cross-service correlation identifier.' })
-@ApiHeader({ name: 'x-user-id', required: false, description: 'Trusted user UUID injected by the API Gateway.' })
-@ApiHeader({ name: 'x-actor-id', required: false, description: 'Trusted acting user/service UUID.' })
+@ApiHeader({
+  name: 'x-internal-service-key',
+  required: false,
+  description: 'Trusted gateway/service secret when configured.',
+})
+@ApiHeader({
+  name: 'x-request-id',
+  required: false,
+  description: 'UUID request identifier; generated when omitted.',
+})
+@ApiHeader({
+  name: 'x-correlation-id',
+  required: false,
+  description: 'Cross-service correlation identifier.',
+})
+@ApiHeader({
+  name: 'x-user-id',
+  required: false,
+  description: 'Trusted user UUID injected by the API Gateway.',
+})
+@ApiHeader({
+  name: 'x-actor-id',
+  required: false,
+  description: 'Trusted acting user/service UUID.',
+})
 @UseGuards(InternalServiceGuard)
 @Controller('files')
 export class FilesController {
@@ -109,7 +130,11 @@ export class FilesController {
 
   @Post('presigned-upload')
   @ApiOperation({ summary: 'Reserve an object and create a presigned S3 PUT URL' })
-  @ApiHeader({ name: 'idempotency-key', required: true, description: 'Unique retry key within the resource scope.' })
+  @ApiHeader({
+    name: 'idempotency-key',
+    required: true,
+    description: 'Unique retry key within the resource scope.',
+  })
   @ApiCreatedResponse({
     description: 'Presigned request created. Do not log or persist the returned URL.',
     schema: {
@@ -130,7 +155,7 @@ export class FilesController {
     @Body() dto: CreatePresignedUploadDto,
     @Headers() headers: Record<string, string | string[] | undefined>,
   ): Promise<Record<string, unknown>> {
-    const name = this.config.getOrThrow<Record<string, string>>('app.headers').idempotencyKey;
+    const name = this.config.getOrThrow<AppHeaders>('app.headers').idempotencyKey;
     const raw = headers[name];
     const key = Array.isArray(raw) ? raw[0] : raw;
     return this.filesService.createPresignedUpload(dto, key ?? '');
@@ -161,7 +186,9 @@ export class FilesController {
   @ApiOperation({ summary: 'Create a short-lived download URL for a private file' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiOkResponse({
-    schema: { example: { url: 'https://signed-url.example', expiresAt: '2026-08-04T06:05:00.000Z' } },
+    schema: {
+      example: { url: 'https://signed-url.example', expiresAt: '2026-08-04T06:05:00.000Z' },
+    },
   })
   async downloadUrl(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
@@ -181,7 +208,13 @@ export class FilesController {
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Safely replace an existing file object' })
   @ApiConsumes('multipart/form-data')
-  @ApiBody({ schema: { type: 'object', required: ['file'], properties: { file: { type: 'string', format: 'binary' } } } })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
   async replaceFile(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @UploadedFile() file: Express.Multer.File | undefined,

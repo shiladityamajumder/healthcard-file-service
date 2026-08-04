@@ -35,14 +35,28 @@ export class FileValidationService {
       [FileCategory.PRODUCT_IMAGE]: this.policy(max, IMAGE_MIMES, IMAGE_EXTENSIONS),
       [FileCategory.BRAND_LOGO]: this.policy(max, IMAGE_MIMES, IMAGE_EXTENSIONS),
       [FileCategory.PROFILE_IMAGE]: this.policy(max, IMAGE_MIMES, IMAGE_EXTENSIONS),
-      [FileCategory.PRESCRIPTION]: this.policy(max, [...IMAGE_MIMES, 'application/pdf'], [...IMAGE_EXTENSIONS, '.pdf']),
+      [FileCategory.PRESCRIPTION]: this.policy(
+        max,
+        [...IMAGE_MIMES, 'application/pdf'],
+        [...IMAGE_EXTENSIONS, '.pdf'],
+      ),
       [FileCategory.MEDICAL_REPORT]: this.policy(max, DOCUMENT_MIMES, DOCUMENT_EXTENSIONS),
       [FileCategory.LABORATORY_REPORT]: this.policy(max, DOCUMENT_MIMES, DOCUMENT_EXTENSIONS),
       [FileCategory.ORGANIZATION_DOCUMENT]: this.policy(max, DOCUMENT_MIMES, DOCUMENT_EXTENSIONS),
       [FileCategory.INVOICE_DOCUMENT]: this.policy(max, DOCUMENT_MIMES, DOCUMENT_EXTENSIONS),
-      [FileCategory.SHIPPING_DOCUMENT]: this.policy(max, [...IMAGE_MIMES, 'application/pdf'], [...IMAGE_EXTENSIONS, '.pdf']),
-      [FileCategory.SUPPORT_ATTACHMENT]: this.policy(max, globalMimes, [...IMAGE_EXTENSIONS, ...DOCUMENT_EXTENSIONS]),
-      [FileCategory.NOTIFICATION_ATTACHMENT]: this.policy(max, globalMimes, [...IMAGE_EXTENSIONS, ...DOCUMENT_EXTENSIONS]),
+      [FileCategory.SHIPPING_DOCUMENT]: this.policy(
+        max,
+        [...IMAGE_MIMES, 'application/pdf'],
+        [...IMAGE_EXTENSIONS, '.pdf'],
+      ),
+      [FileCategory.SUPPORT_ATTACHMENT]: this.policy(max, globalMimes, [
+        ...IMAGE_EXTENSIONS,
+        ...DOCUMENT_EXTENSIONS,
+      ]),
+      [FileCategory.NOTIFICATION_ATTACHMENT]: this.policy(max, globalMimes, [
+        ...IMAGE_EXTENSIONS,
+        ...DOCUMENT_EXTENSIONS,
+      ]),
     };
     this.policies = this.applyOverrides(
       defaults,
@@ -62,7 +76,10 @@ export class FileValidationService {
     const basic = this.validateMetadata(file.originalname, file.mimetype, file.size, category);
     const detected = await fromBuffer(file.buffer);
     if (detected) {
-      const detectedMime = this.detectedMimeForExtension(detected.mime.toLowerCase(), basic.extension);
+      const detectedMime = this.detectedMimeForExtension(
+        detected.mime.toLowerCase(),
+        basic.extension,
+      );
       const compatible = this.mimeCompatible(basic.contentType, detectedMime);
       if (!compatible || !this.policies[category].mimeTypes.includes(detectedMime)) {
         throw new AppException(
@@ -72,7 +89,10 @@ export class FileValidationService {
           { declared: basic.contentType, detected: detectedMime },
         );
       }
-      const detectedExtension = basic.extension === '.docx' && detected.ext === 'zip' ? '.docx' : `.${detected.ext.toLowerCase()}`;
+      const detectedExtension =
+        basic.extension === '.docx' && detected.ext === 'zip'
+          ? '.docx'
+          : `.${detected.ext.toLowerCase()}`;
       if (!this.extensionCompatible(basic.extension, detectedExtension)) {
         throw new AppException(
           'MIME_EXTENSION_MISMATCH',
@@ -107,9 +127,14 @@ export class FileValidationService {
       throw new AppException('INVALID_FILE_SIZE', 'The declared file size is invalid.', 422);
     }
     if (sizeBytes > policy.maxSizeBytes) {
-      throw new AppException('FILE_TOO_LARGE', 'The file exceeds the configured category limit.', 413, {
-        maxSizeBytes: policy.maxSizeBytes,
-      });
+      throw new AppException(
+        'FILE_TOO_LARGE',
+        'The file exceeds the configured category limit.',
+        413,
+        {
+          maxSizeBytes: policy.maxSizeBytes,
+        },
+      );
     }
     const contentType = mimeType.trim().toLowerCase().split(';')[0] ?? '';
     if (!policy.mimeTypes.includes(contentType)) {
@@ -120,9 +145,14 @@ export class FileValidationService {
     const sanitizedFilename = sanitizeFilename(filename);
     const extension = getExtension(sanitizedFilename);
     if (!extension || !policy.extensions.includes(extension)) {
-      throw new AppException('UNSUPPORTED_FILE_EXTENSION', 'The file extension is not allowed.', 415, {
-        allowedExtensions: policy.extensions,
-      });
+      throw new AppException(
+        'UNSUPPORTED_FILE_EXTENSION',
+        'The file extension is not allowed.',
+        415,
+        {
+          allowedExtensions: policy.extensions,
+        },
+      );
     }
     if (!this.mimeExtensionAllowed(contentType, extension)) {
       throw new AppException(
@@ -138,11 +168,7 @@ export class FileValidationService {
     return this.policies[category].maxSizeBytes;
   }
 
-  private policy(
-    maxSizeBytes: number,
-    mimeTypes: string[],
-    extensions: string[],
-  ): CategoryPolicy {
+  private policy(maxSizeBytes: number, mimeTypes: string[], extensions: string[]): CategoryPolicy {
     return {
       maxSizeBytes,
       mimeTypes: [...new Set(mimeTypes.map((value) => value.toLowerCase()))],
@@ -203,10 +229,7 @@ export class FileValidationService {
       }
       const mimeTypes =
         override.mimeTypes?.map((value) => value.toLowerCase()) ?? defaults[key].mimeTypes;
-      if (
-        mimeTypes.length === 0 ||
-        mimeTypes.some((value) => !globalMimeTypes.has(value))
-      ) {
+      if (mimeTypes.length === 0 || mimeTypes.some((value) => !globalMimeTypes.has(value))) {
         throw new AppException(
           'INVALID_UPLOAD_POLICY_CONFIGURATION',
           `Upload policy category ${category} has invalid MIME types.`,
@@ -227,7 +250,10 @@ export class FileValidationService {
       }
       const extensions =
         override.extensions?.map((value) => value.toLowerCase()) ?? defaults[key].extensions;
-      if (extensions.length === 0 || extensions.some((value) => !/^\.[a-z0-9]{1,10}$/.test(value))) {
+      if (
+        extensions.length === 0 ||
+        extensions.some((value) => !/^\.[a-z0-9]{1,10}$/.test(value))
+      ) {
         throw new AppException(
           'INVALID_UPLOAD_POLICY_CONFIGURATION',
           `Upload policy category ${category} has invalid extensions.`,

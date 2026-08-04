@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Request, Response } from 'express';
 import { validate as isUuid, v4 as uuidv4 } from 'uuid';
 import type { RequestContext } from '../interfaces/request-context.interface';
+import type { AppHeaders } from '../../config/app.config';
 import { RequestContextService } from './request-context.service';
 
 function headerValue(request: Request, name: string): string | undefined {
@@ -18,7 +19,7 @@ export class RequestContextMiddleware implements NestMiddleware {
   ) {}
 
   use(request: Request, response: Response, next: NextFunction): void {
-    const headers = this.config.getOrThrow<Record<string, string>>('app.headers');
+    const headers = this.config.getOrThrow<AppHeaders>('app.headers');
     const incomingRequestId = headerValue(request, headers.requestId);
     const incomingCorrelationId = headerValue(request, headers.correlationId);
     const pinoRequestId = (request as Request & { id?: string }).id;
@@ -94,6 +95,7 @@ export class RequestContextMiddleware implements NestMiddleware {
     }
     if (
       rolesHeader.length > 2048 ||
+      // eslint-disable-next-line no-control-regex -- reject control characters in a trusted header
       /[\u0000-\u001f\u007f]/.test(rolesHeader) ||
       roles.length > 100 ||
       roles.some((role) => role.length > 128)
@@ -121,16 +123,19 @@ export class RequestContextMiddleware implements NestMiddleware {
     code: string,
     message: string,
   ): void {
-    response.status(400).setHeader('Cache-Control', 'no-store').json({
-      success: false,
-      data: null,
-      error: { code, message, details: null },
-      meta: {
-        request_id: requestId,
-        correlation_id: correlationId,
-        api_version: this.config.get<string>('app.apiVersion') ?? 'v1',
-        timestamp: new Date().toISOString(),
-      },
-    });
+    response
+      .status(400)
+      .setHeader('Cache-Control', 'no-store')
+      .json({
+        success: false,
+        data: null,
+        error: { code, message, details: null },
+        meta: {
+          request_id: requestId,
+          correlation_id: correlationId,
+          api_version: this.config.get<string>('app.apiVersion') ?? 'v1',
+          timestamp: new Date().toISOString(),
+        },
+      });
   }
 }

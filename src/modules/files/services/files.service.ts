@@ -5,9 +5,9 @@ import {
   DataSource,
   In,
   QueryFailedError,
-  Repository,
   type EntityManager,
   type QueryRunner,
+  type Repository,
 } from 'typeorm';
 import {
   FileObjectStatus,
@@ -36,9 +36,13 @@ import {
 } from '../../storage/interfaces/storage.interface';
 import type { BulkDeleteFilesDto } from '../dto/bulk-delete.dto';
 import type { FileAssociationDto } from '../dto/file-association.dto';
-import type { CompletePresignedUploadDto, CreatePresignedUploadDto } from '../dto/presigned-upload.dto';
+import type {
+  CompletePresignedUploadDto,
+  CreatePresignedUploadDto,
+} from '../dto/presigned-upload.dto';
 import { FileCategory } from '../enums/file-category.enum';
-import { ResourceType } from '../enums/resource-type.enum';
+import type { ResourceType } from '../enums/resource-type.enum';
+import type { ResourceAssociationInput } from '../interfaces/resource-mapping.interface';
 import { FileValidationService } from './file-validation.service';
 import { ObjectKeyService } from './object-key.service';
 import { ResourceMappingService } from './resource-mapping.service';
@@ -85,7 +89,10 @@ export class FilesService {
     private readonly config: ConfigService,
   ) {}
 
-  async upload(file: Express.Multer.File, dto: FileAssociationDto): Promise<Record<string, unknown>> {
+  async upload(
+    file: Express.Multer.File,
+    dto: FileAssociationDto,
+  ): Promise<Record<string, unknown>> {
     return this.performServerUpload(file, dto);
   }
 
@@ -105,9 +112,14 @@ export class FilesService {
     const totalSize = files.reduce((total, file) => total + file.size, 0);
     const maxTotal = this.config.getOrThrow<number>('upload.maxTotalUploadSizeBytes');
     if (totalSize > maxTotal) {
-      throw new AppException('TOTAL_UPLOAD_TOO_LARGE', 'The combined upload size is too large.', 413, {
-        maxTotalUploadSizeBytes: maxTotal,
-      });
+      throw new AppException(
+        'TOTAL_UPLOAD_TOO_LARGE',
+        'The combined upload size is too large.',
+        413,
+        {
+          maxTotalUploadSizeBytes: maxTotal,
+        },
+      );
     }
 
     const definition = this.resourceMapper.definition(dto.resourceType);
@@ -326,9 +338,7 @@ export class FilesService {
     }
   }
 
-  async completePresignedUpload(
-    dto: CompletePresignedUploadDto,
-  ): Promise<Record<string, unknown>> {
+  async completePresignedUpload(dto: CompletePresignedUploadDto): Promise<Record<string, unknown>> {
     const session = await this.uploadSessions.findOne({ where: { id: dto.uploadSessionId } });
     if (!session) {
       throw new AppException('UPLOAD_SESSION_NOT_FOUND', 'The upload session was not found.', 404);
@@ -345,7 +355,11 @@ export class FilesService {
       throw new AppException('PRESIGNED_URL_EXPIRED', 'The upload session has expired.', 410);
     }
     if (![FileUploadStatus.PENDING, FileUploadStatus.UPLOADING].includes(session.status)) {
-      throw new AppException('UPLOAD_SESSION_NOT_COMPLETABLE', 'The upload session cannot be completed.', 409);
+      throw new AppException(
+        'UPLOAD_SESSION_NOT_COMPLETABLE',
+        'The upload session cannot be completed.',
+        409,
+      );
     }
 
     const metadata = this.readMetadata(file);
@@ -365,7 +379,10 @@ export class FilesService {
         'verification_mismatch',
       );
       if (!failed) {
-        return { alreadyCompleted: true, file: await this.mapFile(await this.getFileEntity(file.id)) };
+        return {
+          alreadyCompleted: true,
+          file: await this.mapFile(await this.getFileEntity(file.id)),
+        };
       }
       throw new AppException(
         'UPLOAD_COMPLETION_MISMATCH',
@@ -389,9 +406,16 @@ export class FilesService {
         'malware_detected',
       );
       if (!failed) {
-        return { alreadyCompleted: true, file: await this.mapFile(await this.getFileEntity(file.id)) };
+        return {
+          alreadyCompleted: true,
+          file: await this.mapFile(await this.getFileEntity(file.id)),
+        };
       }
-      throw new AppException('MALWARE_DETECTED', 'The uploaded file failed security scanning.', 422);
+      throw new AppException(
+        'MALWARE_DETECTED',
+        'The uploaded file failed security scanning.',
+        422,
+      );
     }
 
     const replacementState: { oldFile: FileObjectEntity | null } = { oldFile: null };
@@ -404,7 +428,11 @@ export class FilesService {
           lock: { mode: 'pessimistic_write' },
         });
         if (!lockedSession) {
-          throw new AppException('UPLOAD_SESSION_NOT_FOUND', 'The upload session was not found.', 404);
+          throw new AppException(
+            'UPLOAD_SESSION_NOT_FOUND',
+            'The upload session was not found.',
+            404,
+          );
         }
         if (lockedSession.status === FileUploadStatus.COMPLETED) {
           alreadyCompletedInsideTransaction = true;
@@ -413,14 +441,20 @@ export class FilesService {
         if (lockedSession.expiresAt <= new Date()) {
           throw new AppException('PRESIGNED_URL_EXPIRED', 'The upload session has expired.', 410);
         }
-        if (![FileUploadStatus.PENDING, FileUploadStatus.UPLOADING].includes(lockedSession.status)) {
+        if (
+          ![FileUploadStatus.PENDING, FileUploadStatus.UPLOADING].includes(lockedSession.status)
+        ) {
           throw new AppException(
             'UPLOAD_SESSION_NOT_COMPLETABLE',
             'The upload session cannot be completed.',
             409,
           );
         }
-        await this.resourceMapper.assertResourceExists(runner, metadata.resourceType, metadata.resourceId);
+        await this.resourceMapper.assertResourceExists(
+          runner,
+          metadata.resourceType,
+          metadata.resourceId,
+        );
         if (metadata.replaceExisting && metadata.expectedOldFileId) {
           replacementState.oldFile = await manager.findOne(FileObjectEntity, {
             where: { id: metadata.expectedOldFileId, isDeleted: false },
@@ -467,7 +501,9 @@ export class FilesService {
         }
 
         const publicUrl =
-          file.accessType === FileVisibility.PUBLIC ? this.storage.getPublicUrl(file.objectKey) : null;
+          file.accessType === FileVisibility.PUBLIC
+            ? this.storage.getPublicUrl(file.objectKey)
+            : null;
         await manager.update(FileObjectEntity, file.id, {
           sizeBytes: String(head.contentLength),
           sha256: expectedSha256,
@@ -502,7 +538,10 @@ export class FilesService {
     }
 
     if (alreadyCompletedInsideTransaction) {
-      return { alreadyCompleted: true, file: await this.mapFile(await this.getFileEntity(file.id)) };
+      return {
+        alreadyCompleted: true,
+        file: await this.mapFile(await this.getFileEntity(file.id)),
+      };
     }
 
     if (replacementState.oldFile) {
@@ -525,7 +564,10 @@ export class FilesService {
         409,
       );
     }
-    if (file.status !== FileObjectStatus.AVAILABLE || file.malwareScanStatus !== MalwareScanStatus.CLEAN) {
+    if (
+      file.status !== FileObjectStatus.AVAILABLE ||
+      file.malwareScanStatus !== MalwareScanStatus.CLEAN
+    ) {
       throw new AppException('FILE_NOT_AVAILABLE', 'The file is not available for download.', 409);
     }
     const expirySeconds = this.config.getOrThrow<number>('aws.presignedDownloadExpirySeconds');
@@ -701,7 +743,12 @@ export class FilesService {
         409,
       );
     }
-    if (!explicitOldFile && definition.associationKind === 'direct' && preflightFileId && !dto.replaceExisting) {
+    if (
+      !explicitOldFile &&
+      definition.associationKind === 'direct' &&
+      preflightFileId &&
+      !dto.replaceExisting
+    ) {
       throw new AppException(
         'FILE_ASSOCIATION_EXISTS',
         'The resource already has a file. Set replaceExisting or use the replace endpoint.',
@@ -715,7 +762,11 @@ export class FilesService {
       sha256,
     });
     if (!scan.clean) {
-      throw new AppException('MALWARE_DETECTED', 'The uploaded file failed security scanning.', 422);
+      throw new AppException(
+        'MALWARE_DETECTED',
+        'The uploaded file failed security scanning.',
+        422,
+      );
     }
     const objectKey = this.keyService.generate({
       visibility: dto.visibility,
@@ -823,7 +874,9 @@ export class FilesService {
             status: FileObjectStatus.AVAILABLE,
             malwareScanStatus: MalwareScanStatus.CLEAN,
             publicUrl:
-              dto.visibility === FileVisibility.PUBLIC ? this.storage.getPublicUrl(objectKey) : null,
+              dto.visibility === FileVisibility.PUBLIC
+                ? this.storage.getPublicUrl(objectKey)
+                : null,
             availableAt: new Date(),
             retentionUntil: null,
             metadataJson,
@@ -845,7 +898,10 @@ export class FilesService {
           await this.markDeleted(manager, oldFile, this.actorId());
           await this.markSourceVariantsDeleted(manager, oldFile.id, this.actorId());
         } else {
-          await this.resourceMapper.associate(runner, this.associationInput(sourceEntity.id, metadataJson));
+          await this.resourceMapper.associate(
+            runner,
+            this.associationInput(sourceEntity.id, metadataJson),
+          );
         }
         await this.insertScanEvent(runner, sourceEntity.id, scan);
 
@@ -935,7 +991,7 @@ export class FilesService {
     };
   }
 
-  private associationInput(fileId: string, metadata: FileMetadataJson) {
+  private associationInput(fileId: string, metadata: FileMetadataJson): ResourceAssociationInput {
     return {
       resourceType: metadata.resourceType,
       resourceId: metadata.resourceId,
@@ -957,10 +1013,10 @@ export class FilesService {
 
   private async mapFile(file: FileObjectEntity): Promise<Record<string, unknown>> {
     const metadata = this.readMetadata(file);
-    const variantRows = await this.dataSource.query(
+    const variantRows = (await this.dataSource.query(
       `SELECT fv.variant_name, fo.id, fo.public_url FROM platform.file_variants fv JOIN platform.file_objects fo ON fo.id = fv.variant_file_id WHERE fv.source_file_id = $1 AND fv.is_deleted = false AND fo.is_deleted = false ORDER BY fv.variant_name`,
       [file.id],
-    ) as Array<{ variant_name: string; id: string; public_url: string | null }>;
+    )) as Array<{ variant_name: string; id: string; public_url: string | null }>;
     return {
       id: file.id,
       resourceType: metadata.resourceType,
@@ -1039,7 +1095,10 @@ export class FilesService {
     }
   }
 
-  private async variantFileEntities(sourceFileId: string, includeDeleted: boolean): Promise<FileObjectEntity[]> {
+  private async variantFileEntities(
+    sourceFileId: string,
+    includeDeleted: boolean,
+  ): Promise<FileObjectEntity[]> {
     const rows = (await this.dataSource.query(
       `SELECT fv.variant_file_id FROM platform.file_variants fv JOIN platform.file_objects fo ON fo.id = fv.variant_file_id WHERE fv.source_file_id = $1${includeDeleted ? '' : ' AND fv.is_deleted = false AND fo.is_deleted = false'}`,
       [sourceFileId],
@@ -1057,7 +1116,9 @@ export class FilesService {
       where: { sourceFileId, isDeleted: false },
     });
     for (const link of links) {
-      const variant = await manager.findOne(FileObjectEntity, { where: { id: link.variantFileId } });
+      const variant = await manager.findOne(FileObjectEntity, {
+        where: { id: link.variantFileId },
+      });
       if (variant) await this.markDeleted(manager, variant, actorId);
       await manager.update(FileVariantEntity, link.id, {
         isDeleted: true,

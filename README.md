@@ -24,14 +24,14 @@ Production-grade NestJS microservice for public and private healthcare file stor
 
 ## Important database rule
 
-This service contains **no migrations**. Apply the database project separately:
+This service connects to one already-existing PostgreSQL database using `DATABASE_URL`. The database and every required schema/table must exist before the service starts. Apply the separate database project first:
 
 ```bash
 cd healthcare_db
 alembic upgrade head
 ```
 
-The readiness endpoint verifies that `platform.file_objects` exists. An empty Docker Compose PostgreSQL instance is not ready until the external migration project has been applied.
+`healthcare_db` is the sole schema and migration authority. This service contains no migrations, never creates or alters database objects, and permanently configures TypeORM with synchronization and automatic migration execution disabled. Startup fails if configuration is invalid or the configured database cannot be reached after connection retries. Readiness reports unavailable using a non-mutating `SELECT 1` check and does not expose connection details.
 
 ## Local setup
 
@@ -62,7 +62,21 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The Compose stack starts PostgreSQL and MinIO and creates public/private buckets. It intentionally does not run migrations. Apply `healthcare_db` to the Compose PostgreSQL database before expecting `/ready` to pass.
+The Compose stack starts the file service and MinIO only. It does not create PostgreSQL, database volumes, schemas, tables, or run migrations. Set `DATABASE_URL` to an existing database reachable from the container:
+
+```env
+# PostgreSQL on the Docker host
+DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/healthcare
+
+# PostgreSQL in another Compose service on the same network
+DATABASE_URL=postgresql://postgres:postgres@postgres-service-name:5432/healthcare
+
+# Managed PostgreSQL
+DATABASE_URL=postgresql://username:password@database-host:5432/healthcare
+DATABASE_SSL=true
+```
+
+These values are examples only. Never commit real credentials. In production, use secret injection and a runtime role without database/schema creation or schema modification privileges; grant only the table and sequence operations required by the file workflows.
 
 ## Standard response contract
 
@@ -106,17 +120,17 @@ This matches the response contract detected in `auth_service/app/common/response
 
 ## Main endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/api/v1/files/upload` | Server-side single upload |
-| POST | `/api/v1/files/upload-multiple` | Server-side multiple upload |
-| POST | `/api/v1/files/presigned-upload` | Reserve metadata and create S3 PUT URL |
-| POST | `/api/v1/files/presigned-upload/complete` | Verify with `HeadObject` and finalize |
-| GET | `/api/v1/files/:id` | Metadata |
-| GET | `/api/v1/files/:id/download-url` | Private signed URL |
-| PUT | `/api/v1/files/:id/replace` | Safe replacement |
-| DELETE | `/api/v1/files/:id` | Association cleanup and deletion |
-| POST | `/api/v1/files/bulk-delete` | Per-file bulk deletion results |
+| Method | Path                                      | Purpose                                |
+| ------ | ----------------------------------------- | -------------------------------------- |
+| POST   | `/api/v1/files/upload`                    | Server-side single upload              |
+| POST   | `/api/v1/files/upload-multiple`           | Server-side multiple upload            |
+| POST   | `/api/v1/files/presigned-upload`          | Reserve metadata and create S3 PUT URL |
+| POST   | `/api/v1/files/presigned-upload/complete` | Verify with `HeadObject` and finalize  |
+| GET    | `/api/v1/files/:id`                       | Metadata                               |
+| GET    | `/api/v1/files/:id/download-url`          | Private signed URL                     |
+| PUT    | `/api/v1/files/:id/replace`               | Safe replacement                       |
+| DELETE | `/api/v1/files/:id`                       | Association cleanup and deletion       |
+| POST   | `/api/v1/files/bulk-delete`               | Per-file bulk deletion results         |
 
 See [API.md](API.md) for complete examples.
 

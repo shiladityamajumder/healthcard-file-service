@@ -1,5 +1,5 @@
+import type { ArgumentsHost } from '@nestjs/common';
 import {
-  ArgumentsHost,
   BadRequestException,
   Catch,
   HttpException,
@@ -50,21 +50,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       });
     }
 
-    response.status(mapped.statusCode).setHeader('Cache-Control', 'no-store').json({
-      success: false,
-      data: null,
-      error: {
-        code: mapped.code,
-        message: mapped.message,
-        details: mapped.details,
-      },
-      meta: {
-        request_id: context?.requestId ?? null,
-        correlation_id: context?.correlationId ?? null,
-        api_version: this.config.get<string>('app.apiVersion') ?? 'v1',
-        timestamp: new Date().toISOString(),
-      },
-    });
+    response
+      .status(mapped.statusCode)
+      .setHeader('Cache-Control', 'no-store')
+      .json({
+        success: false,
+        data: null,
+        error: {
+          code: mapped.code,
+          message: mapped.message,
+          details: mapped.details,
+        },
+        meta: {
+          request_id: context?.requestId ?? null,
+          correlation_id: context?.correlationId ?? null,
+          api_version: this.config.get<string>('app.apiVersion') ?? 'v1',
+          timestamp: new Date().toISOString(),
+        },
+      });
   }
 
   private mapException(exception: unknown): {
@@ -122,9 +125,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const driverCode = this.queryDriverCode(exception);
       if (
         driverCode.startsWith('08') ||
-        ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', '57P01', '57P02', '57P03'].includes(
-          driverCode,
-        )
+        ['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', '57P01', '57P02', '57P03'].includes(driverCode)
       ) {
         return {
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,
@@ -142,7 +143,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         };
       }
       return {
-        statusCode: driverCode.startsWith('23') ? HttpStatus.CONFLICT : HttpStatus.INTERNAL_SERVER_ERROR,
+        statusCode: driverCode.startsWith('23')
+          ? HttpStatus.CONFLICT
+          : HttpStatus.INTERNAL_SERVER_ERROR,
         code: 'DATABASE_OPERATION_FAILED',
         message: 'The persistence operation could not be completed.',
         details: null,
@@ -168,7 +171,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private flattenValidation(item: ValidationMessage, prefix = ''): Array<Record<string, string>> {
     const field = prefix ? `${prefix}.${item.property ?? ''}` : (item.property ?? 'request');
-    const own = Object.entries(item.constraints ?? {}).map(([type, message]) => ({ field, message, type }));
+    const own = Object.entries(item.constraints ?? {}).map(([type, message]) => ({
+      field,
+      message,
+      type,
+    }));
     const child = (item.children ?? []).flatMap((value) => this.flattenValidation(value, field));
     return [...own, ...child];
   }
