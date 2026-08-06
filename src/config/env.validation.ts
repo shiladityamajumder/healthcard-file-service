@@ -67,25 +67,25 @@ export const environmentValidationSchema = Joi.object({
   INTERNAL_SERVICE_SECRET: Joi.string().allow('').optional(),
   TRUSTED_GATEWAY_HEADER_NAME: Joi.string()
     .pattern(/^[a-z0-9-]+$/i)
-    .default('x-internal-service-key'),
+    .default('X-Internal-Service-Key'),
   REQUEST_ID_HEADER_NAME: Joi.string()
     .pattern(/^[a-z0-9-]+$/i)
-    .default('x-request-id'),
+    .default('X-Request-ID'),
   CORRELATION_ID_HEADER_NAME: Joi.string()
     .pattern(/^[a-z0-9-]+$/i)
-    .default('x-correlation-id'),
+    .default('X-Correlation-ID'),
   USER_ID_HEADER_NAME: Joi.string()
     .pattern(/^[a-z0-9-]+$/i)
-    .default('x-user-id'),
+    .default('X-User-ID'),
   ACTOR_ID_HEADER_NAME: Joi.string()
     .pattern(/^[a-z0-9-]+$/i)
-    .default('x-actor-id'),
+    .default('X-Actor-ID'),
   ROLES_HEADER_NAME: Joi.string()
     .pattern(/^[a-z0-9-]+$/i)
-    .default('x-roles'),
+    .default('X-Roles'),
   IDEMPOTENCY_KEY_HEADER_NAME: Joi.string()
     .pattern(/^[a-z0-9-]+$/i)
-    .default('idempotency-key'),
+    .default('Idempotency-Key'),
 
   CORS_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
   CORS_ORIGINS: Joi.string().allow('').default(''),

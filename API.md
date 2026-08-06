@@ -8,8 +8,8 @@ All examples assume trusted internal headers. Public clients should call the fut
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/files/upload \
-  -H 'x-internal-service-key: change-me-for-non-local-environments' \
-  -H 'x-user-id: 9cf8539c-a940-4fc4-8121-cb71d005f699' \
+  -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
+  -H 'X-User-ID: 9cf8539c-a940-4fc4-8121-cb71d005f699' \
   -F 'file=@prescription.pdf;type=application/pdf' \
   -F 'resourceType=prescription_document' \
   -F 'resourceId=70f95c8e-cbc5-4700-af76-dcb8178bba92' \
@@ -22,7 +22,7 @@ curl -X POST http://localhost:3000/api/v1/files/upload \
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/files/upload-multiple \
-  -H 'x-internal-service-key: change-me-for-non-local-environments' \
+  -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   -F 'files=@front.jpg;type=image/jpeg' \
   -F 'files=@side.jpg;type=image/jpeg' \
   -F 'resourceType=product_media' \
@@ -39,8 +39,8 @@ SHA-256 is mandatory because `platform.file_objects` requires a final SHA-256 be
 ```bash
 curl -X POST http://localhost:3000/api/v1/files/presigned-upload \
   -H 'content-type: application/json' \
-  -H 'idempotency-key: prescription-70f95c8e-v1' \
-  -H 'x-internal-service-key: change-me-for-non-local-environments' \
+  -H 'Idempotency-Key: prescription-70f95c8e-v1' \
+  -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   -d '{
     "resourceType":"prescription_document",
     "resourceId":"70f95c8e-cbc5-4700-af76-dcb8178bba92",
@@ -70,14 +70,14 @@ Complete:
 ```bash
 curl -X POST http://localhost:3000/api/v1/files/presigned-upload/complete \
   -H 'content-type: application/json' \
-  -H 'x-internal-service-key: change-me-for-non-local-environments' \
+  -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   -d '{"uploadSessionId":"5f95cf7b-c6e9-40b5-a36e-5b91f874d99d"}'
 ```
 
 ## Metadata
 
 ```bash
-curl -H 'x-internal-service-key: change-me-for-non-local-environments' \
+curl -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   http://localhost:3000/api/v1/files/8226d071-061c-4c61-ae74-603606cd654f
 ```
 
@@ -86,7 +86,7 @@ Private metadata includes an internal object key but no permanent public URL. Pu
 ## Private download URL
 
 ```bash
-curl -H 'x-internal-service-key: change-me-for-non-local-environments' \
+curl -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   http://localhost:3000/api/v1/files/8226d071-061c-4c61-ae74-603606cd654f/download-url
 ```
 
@@ -96,7 +96,7 @@ The URL is short-lived and response caching is disabled.
 
 ```bash
 curl -X PUT http://localhost:3000/api/v1/files/8226d071-061c-4c61-ae74-603606cd654f/replace \
-  -H 'x-internal-service-key: change-me-for-non-local-environments' \
+  -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   -F 'file=@replacement.pdf;type=application/pdf'
 ```
 
@@ -107,7 +107,7 @@ Generated image variants cannot be replaced independently; replace the source fi
 
 ```bash
 curl -X DELETE \
-  -H 'x-internal-service-key: change-me-for-non-local-environments' \
+  -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   http://localhost:3000/api/v1/files/8226d071-061c-4c61-ae74-603606cd654f
 ```
 
@@ -118,7 +118,7 @@ Deleting a generated variant by its returned file ID soft-deletes only the varia
 ```bash
 curl -X POST http://localhost:3000/api/v1/files/bulk-delete \
   -H 'content-type: application/json' \
-  -H 'x-internal-service-key: change-me-for-non-local-environments' \
+  -H 'X-Internal-Service-Key: change-me-for-non-local-environments' \
   -d '{"fileIds":["8226d071-061c-4c61-ae74-603606cd654f"]}'
 ```
 

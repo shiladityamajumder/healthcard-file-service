@@ -10,9 +10,9 @@ export interface ApiSuccessEnvelope<T> {
   data: T;
   error: null;
   meta: {
-    request_id: string | null;
-    correlation_id: string | null;
-    api_version: string;
+    requestId: string | null;
+    correlationId: string | null;
+    apiVersion: string;
     timestamp: string;
   };
 }
@@ -34,9 +34,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiSuccessEnve
           data,
           error: null,
           meta: {
-            request_id: requestContext?.requestId ?? null,
-            correlation_id: requestContext?.correlationId ?? null,
-            api_version: this.config.get<string>('app.apiVersion') ?? 'v1',
+            requestId: requestContext?.requestId ?? null,
+            correlationId: requestContext?.correlationId ?? null,
+            apiVersion: this.config.get<string>('app.apiVersion') ?? 'v1',
             timestamp: new Date().toISOString(),
           },
         };

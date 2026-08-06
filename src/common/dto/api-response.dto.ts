@@ -17,17 +17,17 @@ export class ResponseMetaDto {
     example: '6c6f95f7-5750-4be9-9a92-a76c30d69f0b',
     nullable: true,
   })
-  request_id!: string | null;
+  requestId!: string | null;
 
   @ApiProperty({
     type: String,
     example: '6c6f95f7-5750-4be9-9a92-a76c30d69f0b',
     nullable: true,
   })
-  correlation_id!: string | null;
+  correlationId!: string | null;
 
   @ApiProperty({ example: 'v1' })
-  api_version!: string;
+  apiVersion!: string;
 
   @ApiProperty({ example: '2026-08-04T06:00:00.000Z' })
   timestamp!: string;

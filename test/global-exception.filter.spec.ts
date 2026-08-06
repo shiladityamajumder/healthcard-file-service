@@ -29,7 +29,7 @@ describe('GlobalExceptionFilter', () => {
         success: false,
         data: null,
         error: expect.objectContaining({ code: 'FILE_NOT_FOUND' }),
-        meta: expect.objectContaining({ api_version: 'v1' }),
+        meta: expect.objectContaining({ apiVersion: 'v1' }),
       }),
     );
   });

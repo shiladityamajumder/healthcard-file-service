@@ -44,7 +44,7 @@ async function bootstrap(): Promise<void> {
         headers.internalService,
         headers.idempotencyKey,
       ],
-      exposedHeaders: [headers.requestId, headers.correlationId, 'x-api-version'],
+      exposedHeaders: [headers.requestId, headers.correlationId, 'X-API-Version'],
     });
   }
 
@@ -64,7 +64,7 @@ async function bootstrap(): Promise<void> {
       .addTag('Files', 'Public/private S3 uploads, downloads, replacement, deletion, and metadata')
       .addTag('Health', 'Liveness and dependency readiness')
       .addApiKey(
-        { type: 'apiKey', in: 'header', name: 'x-internal-service-key' },
+        { type: 'apiKey', in: 'header', name: 'X-Internal-Service-Key' },
         'internal-service',
       )
       .build();

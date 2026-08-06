@@ -88,9 +88,9 @@ Success:
   "data": {},
   "error": null,
   "meta": {
-    "request_id": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "correlation_id": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "api_version": "v1",
+    "requestId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
+    "correlationId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
+    "apiVersion": "v1",
     "timestamp": "2026-08-04T06:00:00.000Z"
   }
 }
@@ -108,9 +108,9 @@ Error:
     "details": null
   },
   "meta": {
-    "request_id": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "correlation_id": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "api_version": "v1",
+    "requestId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
+    "correlationId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
+    "apiVersion": "v1",
     "timestamp": "2026-08-04T06:00:00.000Z"
   }
 }
@@ -138,13 +138,13 @@ See [API.md](API.md) for complete examples.
 
 The service accepts configurable headers for request identity and tracing:
 
-- `x-internal-service-key`
-- `x-request-id`
-- `x-correlation-id`
-- `x-user-id`
-- `x-actor-id`
-- `x-roles`
-- `idempotency-key`
+- `X-Internal-Service-Key`
+- `X-Request-ID`
+- `X-Correlation-ID`
+- `X-User-ID`
+- `X-Actor-ID`
+- `X-Roles`
+- `Idempotency-Key`
 
 These headers are not proof of identity by themselves. The service must be private, and the Gateway/load balancer must strip client-provided values before injecting trusted values.
 

@@ -28,14 +28,14 @@ export const appConfig = registerAs('app', () => ({
   allowNoopScannerInProduction: process.env.ALLOW_NOOP_SCANNER_IN_PRODUCTION === 'true',
   headers: {
     internalService: (
-      process.env.TRUSTED_GATEWAY_HEADER_NAME ?? 'x-internal-service-key'
+      process.env.TRUSTED_GATEWAY_HEADER_NAME ?? 'X-Internal-Service-Key'
     ).toLowerCase(),
-    requestId: (process.env.REQUEST_ID_HEADER_NAME ?? 'x-request-id').toLowerCase(),
-    correlationId: (process.env.CORRELATION_ID_HEADER_NAME ?? 'x-correlation-id').toLowerCase(),
-    userId: (process.env.USER_ID_HEADER_NAME ?? 'x-user-id').toLowerCase(),
-    actorId: (process.env.ACTOR_ID_HEADER_NAME ?? 'x-actor-id').toLowerCase(),
-    roles: (process.env.ROLES_HEADER_NAME ?? 'x-roles').toLowerCase(),
-    idempotencyKey: (process.env.IDEMPOTENCY_KEY_HEADER_NAME ?? 'idempotency-key').toLowerCase(),
+    requestId: (process.env.REQUEST_ID_HEADER_NAME ?? 'X-Request-ID').toLowerCase(),
+    correlationId: (process.env.CORRELATION_ID_HEADER_NAME ?? 'X-Correlation-ID').toLowerCase(),
+    userId: (process.env.USER_ID_HEADER_NAME ?? 'X-User-ID').toLowerCase(),
+    actorId: (process.env.ACTOR_ID_HEADER_NAME ?? 'X-Actor-ID').toLowerCase(),
+    roles: (process.env.ROLES_HEADER_NAME ?? 'X-Roles').toLowerCase(),
+    idempotencyKey: (process.env.IDEMPOTENCY_KEY_HEADER_NAME ?? 'Idempotency-Key').toLowerCase(),
   },
   internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET ?? '',
 }));

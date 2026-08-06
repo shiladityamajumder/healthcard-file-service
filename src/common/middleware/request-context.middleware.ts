@@ -133,9 +133,9 @@ export class RequestContextMiddleware implements NestMiddleware {
         data: null,
         error: { code, message, details: null },
         meta: {
-          request_id: requestId,
-          correlation_id: correlationId,
-          api_version: this.config.get<string>('app.apiVersion') ?? 'v1',
+          requestId,
+          correlationId,
+          apiVersion: this.config.get<string>('app.apiVersion') ?? 'v1',
           timestamp: new Date().toISOString(),
         },
       });

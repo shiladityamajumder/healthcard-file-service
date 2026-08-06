@@ -22,13 +22,13 @@ Names are configurable; defaults are:
 
 | Header | Purpose | Format |
 |---|---|---|
-| `x-internal-service-key` | Optional shared gateway-to-service secret | Opaque secret |
-| `x-request-id` | Request identifier propagated across services | UUID; service generates one when missing and rejects invalid values |
-| `x-correlation-id` | End-to-end trace/correlation identifier | UUID; defaults to the request ID when missing |
-| `x-user-id` | Authenticated user | UUID |
-| `x-actor-id` | Acting user/service identity | UUID |
-| `x-roles` | Authorized roles/scopes | Comma-separated bounded values |
-| `idempotency-key` | Required for presigned reservation retries | Up to 128 characters |
+| `X-Internal-Service-Key` | Optional shared gateway-to-service secret | Opaque secret |
+| `X-Request-ID` | Request identifier propagated across services | UUID; service generates one when missing and rejects invalid values |
+| `X-Correlation-ID` | End-to-end trace/correlation identifier | UUID; defaults to the request ID when missing |
+| `X-User-ID` | Authenticated user | UUID |
+| `X-Actor-ID` | Acting user/service identity | UUID |
+| `X-Roles` | Authorized roles/scopes | Comma-separated bounded values |
+| `Idempotency-Key` | Required for presigned reservation retries | Up to 128 characters |
 
 The gateway should strip all of these headers from the external request and inject canonical values. The shared secret is defense in depth, not a substitute for network isolation. For higher assurance, replace it with workload identity, mTLS, or a signed service-to-service request scheme.
 
@@ -60,7 +60,7 @@ For large files, prefer `POST /files/presigned-upload`, direct client upload to 
 Safe automatic retries:
 
 - `GET` metadata and download URL requests, subject to authorization re-evaluation;
-- presigned reservation with the same `idempotency-key`;
+- presigned reservation with the same `Idempotency-Key`;
 - presigned completion with the same upload session ID;
 - delete after a transport failure, because deletion is state-aware.
 
@@ -88,12 +88,12 @@ Preserve the response envelope:
     "details": null
   },
   "meta": {
-    "request_id": "...",
-    "correlation_id": "...",
-    "api_version": "v1",
+    "requestId": "...",
+    "correlationId": "...",
+    "apiVersion": "v1",
     "timestamp": "..."
   }
 }
 ```
 
-Forward `request_id` and `correlation_id` into gateway/access logs while continuing to redact signed URLs, credentials, tokens, filenames that may contain health information, and request bodies containing medical data.
+Forward `requestId` and `correlationId` into gateway/access logs while continuing to redact signed URLs, credentials, tokens, filenames that may contain health information, and request bodies containing medical data.

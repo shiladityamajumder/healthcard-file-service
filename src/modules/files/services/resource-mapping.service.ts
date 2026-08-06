@@ -417,10 +417,10 @@ export class ResourceMappingService implements ResourceMapper {
       return null;
     }
     const rows = (await queryRunner.query(
-      `SELECT "${definition.fileColumn}" AS file_id FROM "${definition.schema}"."${definition.table}" WHERE id = $1 LIMIT 1`,
+      `SELECT "${definition.fileColumn}" AS "fileId" FROM "${definition.schema}"."${definition.table}" WHERE id = $1 LIMIT 1`,
       [resourceId],
-    )) as Array<{ file_id: string | null }>;
-    return rows[0]?.file_id ?? null;
+    )) as Array<{ fileId: string | null }>;
+    return rows[0]?.fileId ?? null;
   }
 
   listDefinitions(): ResourceMappingDefinition[] {

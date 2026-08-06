@@ -16,9 +16,21 @@ describe('Swagger document generation', () => {
     }).compile();
     const app = moduleRef.createNestApplication();
 
-    expect(() =>
-      SwaggerModule.createDocument(app, new DocumentBuilder().setTitle('test').build()),
-    ).not.toThrow();
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().setTitle('test').build(),
+    );
+
+    expect(document.components?.schemas?.ResponseMetaDto).toEqual(
+      expect.objectContaining({
+        properties: expect.objectContaining({
+          requestId: expect.any(Object),
+          correlationId: expect.any(Object),
+          apiVersion: expect.any(Object),
+        }),
+      }),
+    );
+    for (const path of Object.keys(document.paths)) expect(path).not.toContain('_');
 
     await app.close();
   });

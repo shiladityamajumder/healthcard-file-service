@@ -41,27 +41,27 @@ import { FilesService } from '../services/files.service';
 
 @ApiTags('Files')
 @ApiHeader({
-  name: 'x-internal-service-key',
+  name: 'X-Internal-Service-Key',
   required: false,
   description: 'Trusted gateway/service secret when configured.',
 })
 @ApiHeader({
-  name: 'x-request-id',
+  name: 'X-Request-ID',
   required: false,
   description: 'UUID request identifier; generated when omitted.',
 })
 @ApiHeader({
-  name: 'x-correlation-id',
+  name: 'X-Correlation-ID',
   required: false,
   description: 'Cross-service correlation identifier.',
 })
 @ApiHeader({
-  name: 'x-user-id',
+  name: 'X-User-ID',
   required: false,
   description: 'Trusted user UUID injected by the API Gateway.',
 })
 @ApiHeader({
-  name: 'x-actor-id',
+  name: 'X-Actor-ID',
   required: false,
   description: 'Trusted acting user/service UUID.',
 })
@@ -132,7 +132,7 @@ export class FilesController {
   @Post('presigned-upload')
   @ApiOperation({ summary: 'Reserve an object and create a presigned S3 PUT URL' })
   @ApiHeader({
-    name: 'idempotency-key',
+    name: 'Idempotency-Key',
     required: true,
     description: 'Unique retry key within the resource scope.',
   })

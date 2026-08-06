@@ -63,9 +63,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           details: mapped.details,
         },
         meta: {
-          request_id: context?.requestId ?? null,
-          correlation_id: context?.correlationId ?? null,
-          api_version: this.config.get<string>('app.apiVersion') ?? 'v1',
+          requestId: context?.requestId ?? null,
+          correlationId: context?.correlationId ?? null,
+          apiVersion: this.config.get<string>('app.apiVersion') ?? 'v1',
           timestamp: new Date().toISOString(),
         },
       });

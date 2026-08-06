@@ -1024,9 +1024,9 @@ export class FilesService {
   private async mapFile(file: FileObjectEntity): Promise<Record<string, unknown>> {
     const metadata = this.readMetadata(file);
     const variantRows = (await this.dataSource.query(
-      `SELECT fv.variant_name, fo.id, fo.public_url FROM platform.file_variants fv JOIN platform.file_objects fo ON fo.id = fv.variant_file_id WHERE fv.source_file_id = $1 AND fv.is_deleted = false AND fo.is_deleted = false ORDER BY fv.variant_name`,
+      `SELECT fv.variant_name AS "variantName", fo.id, fo.public_url AS "publicUrl" FROM platform.file_variants fv JOIN platform.file_objects fo ON fo.id = fv.variant_file_id WHERE fv.source_file_id = $1 AND fv.is_deleted = false AND fo.is_deleted = false ORDER BY fv.variant_name`,
       [file.id],
-    )) as Array<{ variant_name: string; id: string; public_url: string | null }>;
+    )) as Array<{ variantName: string; id: string; publicUrl: string | null }>;
     return {
       id: file.id,
       resourceType: metadata.resourceType,
@@ -1042,9 +1042,9 @@ export class FilesService {
       malwareScanStatus: file.malwareScanStatus,
       sha256: file.sha256,
       variants: variantRows.map((row) => ({
-        name: row.variant_name,
+        name: row.variantName,
         fileId: row.id,
-        publicUrl: row.public_url,
+        publicUrl: row.publicUrl,
       })),
       createdAt: file.createdAt.toISOString(),
       updatedAt: file.updatedAt.toISOString(),
@@ -1111,10 +1111,10 @@ export class FilesService {
     includeDeleted: boolean,
   ): Promise<FileObjectEntity[]> {
     const rows = (await this.dataSource.query(
-      `SELECT fv.variant_file_id FROM platform.file_variants fv JOIN platform.file_objects fo ON fo.id = fv.variant_file_id WHERE fv.source_file_id = $1${includeDeleted ? '' : ' AND fv.is_deleted = false AND fo.is_deleted = false'}`,
+      `SELECT fv.variant_file_id AS "variantFileId" FROM platform.file_variants fv JOIN platform.file_objects fo ON fo.id = fv.variant_file_id WHERE fv.source_file_id = $1${includeDeleted ? '' : ' AND fv.is_deleted = false AND fo.is_deleted = false'}`,
       [sourceFileId],
-    )) as Array<{ variant_file_id: string }>;
-    const ids = rows.map((row) => row.variant_file_id);
+    )) as Array<{ variantFileId: string }>;
+    const ids = rows.map((row) => row.variantFileId);
     return ids.length ? this.files.find({ where: { id: In(ids) } }) : [];
   }
 
