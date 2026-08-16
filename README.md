@@ -1,5 +1,21 @@
 # Healthcare File Service
 
+## Documentation map
+
+- [API reference](docs/API.md)
+- [Architecture](ARCHITECTURE.md)
+- [Deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
+- [Environment template](.env.example)
+
+## Technology and operational log
+
+Node.js 22+, NestJS 11, TypeScript, TypeORM, PostgreSQL, AWS SDK v3/S3, MinIO, Sharp, Swagger, Pino, Docker, and npm lockfile reproducibility are used here.
+
+```text
+INFO service_started service=healthcare-file-service environment=production
+INFO file_upload_completed file_id=<uuid> request_id=<uuid>
+```
+
 Production-grade NestJS microservice for public and private healthcare file storage. It maps the existing PostgreSQL schema owned by `healthcare_db`; it never creates, alters, synchronizes, or migrates database objects.
 
 ## Key properties
@@ -132,7 +148,7 @@ This matches the response contract detected in `auth_service/app/common/response
 | DELETE | `/api/v1/files/:id`                       | Association cleanup and deletion       |
 | POST   | `/api/v1/files/bulk-delete`               | Per-file bulk deletion results         |
 
-See [API.md](API.md) for complete examples.
+See [docs/API.md](docs/API.md) for the complete API contract.
 
 ## Trusted gateway headers
 
@@ -171,7 +187,7 @@ npm test
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md)
-- [API.md](API.md)
+- [docs/API.md](docs/API.md)
 - [DEPLOYMENT.md](DEPLOYMENT.md)
 - [SECURITY.md](SECURITY.md)
 - [DATABASE_MAPPING.md](DATABASE_MAPPING.md)

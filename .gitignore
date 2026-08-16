@@ -1,8 +1,22 @@
+# Node dependencies and compiled output. package-lock.json remains tracked.
 node_modules/
 dist/
 coverage/
 .env
 .env.*
 !.env.example
+
+# Package-manager, test, and runtime noise.
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.nyc_output/
+.jest_cache/
+.eslintcache
+*.log
+
+# Editor and operating-system metadata.
+.idea/
+.vscode/
 .DS_Store
+Thumbs.db
