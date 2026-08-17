@@ -1,197 +1,87 @@
+<div align="center">
+
 # Healthcare File Service
 
-## Documentation map
+**Secure public and private file workflows for the healthcare platform**
 
-- [API reference](docs/API.md)
-- [Architecture](ARCHITECTURE.md)
-- [Deployment runbook](docs/DEPLOYMENT_RUNBOOK.md)
-- [Environment template](.env.example)
+![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=nodedotjs&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-metadata-4169E1?logo=postgresql&logoColor=white)
+![Amazon S3](https://img.shields.io/badge/Amazon_S3-objects-569A31?logo=amazons3&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-## Technology and operational log
+</div>
 
-Node.js 22+, NestJS 11, TypeScript, TypeORM, PostgreSQL, AWS SDK v3/S3, MinIO, Sharp, Swagger, Pino, Docker, and npm lockfile reproducibility are used here.
+## Overview
 
-```text
-INFO service_started service=healthcare-file-service environment=production
-INFO file_upload_completed file_id=<uuid> request_id=<uuid>
-```
+Healthcare File Service is a standalone NestJS service for validated healthcare file uploads, metadata, private downloads, public asset delivery, replacement, deletion, and resource association. PostgreSQL stores authoritative metadata while Amazon S3 or an S3-compatible service stores file bytes.
 
-Production-grade NestJS microservice for public and private healthcare file storage. It maps the existing PostgreSQL schema owned by `healthcare_db`; it never creates, alters, synchronizes, or migrates database objects.
+The service supports bounded server-side uploads and direct-to-S3 presigned uploads. It does not authenticate users, create database objects, provision buckets, or bundle PostgreSQL, MinIO, workers, or malware infrastructure.
 
-## Key properties
+## Core documentation
 
-- NestJS 11, TypeScript, TypeORM, PostgreSQL, AWS SDK v3, S3/MinIO, Swagger, Pino, Sharp, Jest.
-- Canonical metadata in `platform.file_objects`.
-- Idempotent direct-to-S3 reservations in `platform.file_upload_sessions`.
-- Public URL support through CloudFront or a configured public S3 base URL.
-- Short-lived presigned private download URLs.
-- Strict resource mappings; clients cannot provide table names, schema names, columns, buckets, prefixes, or object keys.
-- MIME, extension, size, filename, resource, category, and visibility validation.
-- S3/database compensating actions for partial failures.
-- Multiple upload only for verified link-table resources; direct single-reference fields require explicit replacement.
-- No JWT implementation. The service is intended for a private VPC behind a trusted API Gateway.
+| Resource | Purpose |
+|---|---|
+| [API reference](docs/API.md) | Reserved API reference file |
+| [Deployment runbook](docs/DEPLOYMENT.md) | Local, container, production, verification, and rollback procedures |
+| [Architecture](ARCHITECTURE.md) | Boundaries, workflows, persistence, consistency, and security design |
+| [Environment template](.env.example) | Complete commented runtime configuration |
 
-## Prerequisites
+### Storage infrastructure
 
-- Node.js 22+
-- npm 10+
-- PostgreSQL 15+ with all `healthcare_db` Alembic migrations applied
-- Amazon S3, MinIO, or another compatible object store
+[Production S3 setup](docs/S3_SETUP.md) is the detailed implementation guide for buckets, SSE-KMS, IAM, CloudFront, CORS, lifecycle, audit logging, malware controls, verification, and service settings.
 
-## Important database rule
+## Capabilities
 
-This service connects to one already-existing PostgreSQL database using `DATABASE_URL`. The database and every required schema/table must exist before the service starts. Apply the separate database project first:
+- Validated single and multiple server-side uploads
+- Idempotent direct-to-S3 upload reservation and completion
+- Public assets through CloudFront-compatible stable URLs
+- Private files through short-lived presigned downloads
+- Server-controlled object keys without clinical data or raw client paths
+- MIME, extension, byte signature, size, category, resource, and visibility checks
+- Public image variants generated with Sharp
+- Transactional metadata and association updates with S3 compensation
+- Structured logs, request correlation, stable errors, and dependency health probes
 
-```bash
-cd healthcare_db
-alembic upgrade head
-```
+## Technology
 
-`healthcare_db` is the sole schema and migration authority. This service contains no migrations, never creates or alters database objects, and permanently configures TypeORM with synchronization and automatic migration execution disabled. Startup fails if configuration is invalid or the configured database cannot be reached after connection retries. Readiness reports unavailable using a non-mutating `SELECT 1` check and does not expose connection details.
+| Area | Choice |
+|---|---|
+| Runtime | Node.js 22, NestJS 11, TypeScript 5 |
+| Metadata | PostgreSQL, TypeORM |
+| Objects | AWS SDK v3, Amazon S3 or compatible storage |
+| Media | Multer, file-type, Sharp |
+| Operations | Pino, Swagger, Docker, Jest, ESLint |
 
-## Local setup
+## Service boundaries
+
+- `healthcare_db` exclusively owns PostgreSQL schemas and migrations.
+- `auth_service` and the trusted gateway own authentication and authorization.
+- The deployment platform owns S3, KMS, CloudFront, malware scanning, secrets, and networking.
+- This service owns validation, object naming, storage operations, file metadata, associations, and workflow consistency.
+
+Private healthcare content must never be placed in the public bucket. Public S3 access remains blocked; CloudFront Origin Access Control is the recommended public delivery path.
+
+## Quick start
 
 ```bash
 cp .env.example .env
-npm install
+npm ci
 npm run build
-npm run start:dev
-```
-
-Swagger is available at `http://localhost:3000/docs` and OpenAPI JSON at `http://localhost:3000/openapi.json` when `SWAGGER_ENABLED=true`.
-
-Health routes:
-
-- `GET /health` and `GET /health/live`
-- `GET /ready` and `GET /health/ready`
-
-Versioned file API base:
-
-```text
-http://localhost:3000/api/v1/files
-```
-
-## Docker Compose
-
-```bash
-cp .env.example .env
 docker compose up --build
+curl http://localhost:3000/health/ready
 ```
 
-The Compose stack starts only the file service. It does not create PostgreSQL, MinIO/S3, buckets, database volumes, schemas, tables, or migrations. Configure both `DATABASE_URL` and the `AWS_*` settings for infrastructure reachable from the container:
+PostgreSQL and S3-compatible storage must already exist and be reachable. For AWS production setup, complete the [S3 guide](docs/S3_SETUP.md) before deployment.
 
-```env
-# PostgreSQL on the Docker host
-DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/healthcare
+## Runtime endpoints
 
-# PostgreSQL in another Compose service on the same network
-DATABASE_URL=postgresql://postgres:postgres@postgres-service-name:5432/healthcare
+- `/health/live` — process liveness
+- `/health/ready` — PostgreSQL and both S3 bucket checks
+- `/docs` — Swagger UI when enabled
+- `/openapi.json` — generated OpenAPI document when enabled
+- `/api/v1/files` — versioned file workflow API
 
-# Managed PostgreSQL
-DATABASE_URL=postgresql://username:password@database-host:5432/healthcare
-DATABASE_SSL=true
-```
+## Production warning
 
-These values are examples only. Never commit real credentials. In production, use secret injection and a runtime role without database/schema creation or schema modification privileges; grant only the table and sequence operations required by the file workflows.
-
-## Standard response contract
-
-Success:
-
-```json
-{
-  "success": true,
-  "data": {},
-  "error": null,
-  "meta": {
-    "requestId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "correlationId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "apiVersion": "v1",
-    "timestamp": "2026-08-04T06:00:00.000Z"
-  }
-}
-```
-
-Error:
-
-```json
-{
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "UNSUPPORTED_FILE_TYPE",
-    "message": "The file MIME type is not allowed.",
-    "details": null
-  },
-  "meta": {
-    "requestId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "correlationId": "6c6f95f7-5750-4be9-9a92-a76c30d69f0b",
-    "apiVersion": "v1",
-    "timestamp": "2026-08-04T06:00:00.000Z"
-  }
-}
-```
-
-This matches the response contract detected in `auth_service/app/common/response.py`.
-
-## Main endpoints
-
-| Method | Path                                      | Purpose                                |
-| ------ | ----------------------------------------- | -------------------------------------- |
-| POST   | `/api/v1/files/upload`                    | Server-side single upload              |
-| POST   | `/api/v1/files/upload-multiple`           | Server-side multiple upload            |
-| POST   | `/api/v1/files/presigned-upload`          | Reserve metadata and create S3 PUT URL |
-| POST   | `/api/v1/files/presigned-upload/complete` | Verify with `HeadObject` and finalize  |
-| GET    | `/api/v1/files/:id`                       | Metadata                               |
-| GET    | `/api/v1/files/:id/download-url`          | Private signed URL                     |
-| PUT    | `/api/v1/files/:id/replace`               | Safe replacement                       |
-| DELETE | `/api/v1/files/:id`                       | Association cleanup and deletion       |
-| POST   | `/api/v1/files/bulk-delete`               | Per-file bulk deletion results         |
-
-See [docs/API.md](docs/API.md) for the complete API contract.
-
-## Trusted gateway headers
-
-The service accepts configurable headers for request identity and tracing:
-
-- `X-Internal-Service-Key`
-- `X-Request-ID`
-- `X-Correlation-ID`
-- `X-User-ID`
-- `X-Actor-ID`
-- `X-Roles`
-- `Idempotency-Key`
-
-These headers are not proof of identity by themselves. The service must be private, and the Gateway/load balancer must strip client-provided values before injecting trusted values.
-
-## Public and private behavior
-
-Public files use the public bucket/prefix and expose `public_url` after successful upload, scan, and database association. CloudFront is preferred. Public read access is bucket-policy or CloudFront based; the service never makes a bucket publicly writable and does not use object ACLs.
-
-Private files use the private bucket/prefix. Persistent responses contain the internal file ID and object key, never a permanent public URL. A short-lived signed URL is generated on demand, returned with `Cache-Control: private, no-store`, and not logged.
-
-## Malware scanning
-
-The included scanner is explicitly a development no-op adapter. It exercises the scanning interface and writes a scan event, but it does not inspect malware. Startup rejects this adapter in `production` unless `ALLOW_NOOP_SCANNER_IN_PRODUCTION=true` is deliberately supplied. Replace it with ClamAV, GuardDuty Malware Protection for S3, or an asynchronous queue-driven scanner before production use. MIME inspection is not malware scanning.
-
-## Validation commands
-
-```bash
-npm install
-npm run build
-npm run lint
-npm test
-./scripts/verify-no-schema-management.sh
-```
-
-## Documentation
-
-- [ARCHITECTURE.md](ARCHITECTURE.md)
-- [docs/API.md](docs/API.md)
-- [DEPLOYMENT.md](DEPLOYMENT.md)
-- [SECURITY.md](SECURITY.md)
-- [DATABASE_MAPPING.md](DATABASE_MAPPING.md)
-- [S3_STORAGE_DESIGN.md](S3_STORAGE_DESIGN.md)
-- [ERROR_CODES.md](ERROR_CODES.md)
-- [TESTING.md](TESTING.md)
-- [docs/API_GATEWAY_INTEGRATION.md](docs/API_GATEWAY_INTEGRATION.md)
+The included scanner is a development no-op adapter. Production startup blocks it unless an explicit risk override is supplied. A real synchronous scanner or event-driven quarantine workflow is required before handling healthcare files.
