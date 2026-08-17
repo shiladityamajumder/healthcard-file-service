@@ -1,69 +1,140 @@
+# =============================================================================
+# HEALTHCARE FILE SERVICE
+#
+# This Compose file starts only the NestJS file-management API.
+#
+# It does not create or manage:
+#
+# - PostgreSQL
+# - Amazon S3
+# - MinIO
+# - Bucket initialization jobs
+# - Workers or schedulers
+#
+# PostgreSQL and S3-compatible storage must be reachable through settings in
+# .env before the service can become ready.
+# =============================================================================
+
 services:
-  # MinIO is local object-storage support; PostgreSQL remains an external dependency.
-  minio:
-    image: minio/minio:RELEASE.2025-07-23T15-54-02Z
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-this-local-secret}
-    ports:
-      - '9000:9000'
-      - '9001:9001'
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
-      interval: 5s
-      timeout: 3s
-      retries: 20
+  api:
+    # =========================================================================
+    # IMAGE BUILD
+    # =========================================================================
 
-  minio-init:
-    image: minio/mc:RELEASE.2025-07-21T05-28-08Z
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-change-this-local-secret}
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"
-        mc mb --ignore-existing local/healthcare-public
-        mc mb --ignore-existing local/healthcare-private
-        mc anonymous set download local/healthcare-public
-        mc anonymous set none local/healthcare-private
-
-  file-service:
     build:
+      # Use the current project directory as the Docker build context.
       context: .
+
+      # Use the production-oriented Dockerfile in the project root.
       dockerfile: Dockerfile
-    env_file:
-      - .env
-    environment:
-      # Supply DATABASE_URL from the host environment or deployment secret.
-      DATABASE_URL: ${DATABASE_URL}
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-change-this-local-secret}
-    ports:
-      - '3000:3000'
-    depends_on:
-      minio-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
+
+    # Give the generated image a reusable local name.
+    image: healthcare-file-service:latest
+
+    # Give the running container a predictable name.
+    container_name: healthcare-file-service
+
+    # =========================================================================
+    # PROCESS AND RESTART BEHAVIOR
+    # =========================================================================
+
+    # Restart automatically after unexpected process or host failures.
+    # Manual stops remain stopped until explicitly started again.
     restart: unless-stopped
 
-volumes:
-  minio_data:
+    # Give NestJS time to finish requests and close PostgreSQL/S3 clients.
+    stop_grace_period: 30s
+
+    # Provide correct signal forwarding and zombie-process cleanup.
+    init: true
+
+    # =========================================================================
+    # ENVIRONMENT CONFIGURATION
+    # =========================================================================
+
+    # Load API settings and external PostgreSQL/S3 credentials from .env.
+    # The file is optional for image inspection and must never be committed.
+    env_file:
+      - path: .env
+        required: false
+
+    # =========================================================================
+    # PORT MAPPING
+    # =========================================================================
+
+    ports:
+      # PORT controls both the published host port and NestJS's container
+      # listener. The default exposes the API at http://localhost:3000.
+      - "${PORT:-3000}:${PORT:-3000}"
+
+    # =========================================================================
+    # HEALTH CHECK
+    # =========================================================================
+
+    healthcheck:
+      # Liveness checks only the NestJS process. Use /health/ready separately
+      # when PostgreSQL and object-storage readiness must be verified.
+      test:
+        - CMD
+        - node
+        - -e
+        - "const port=process.env.PORT||'3000';fetch('http://127.0.0.1:'+port+'/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    # =========================================================================
+    # SECURITY
+    # =========================================================================
+
+    # Prevent the container from gaining additional Linux privileges.
+    security_opt:
+      - no-new-privileges:true
+
+    # The API does not require Linux capabilities or privileged ports.
+    cap_drop:
+      - ALL
+
+    # Sharp and standard libraries may require temporary working space.
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+
+    # =========================================================================
+    # LOGGING
+    # =========================================================================
+
+    # Prevent Docker JSON log files from growing without limit.
+    logging:
+      driver: json-file
+
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # =========================================================================
+    # RESOURCE LIMITS
+    # =========================================================================
+
+    # Image decoding can be memory-intensive. Adjust these limits after
+    # measuring representative upload sizes and concurrency.
+    mem_limit: 1g
+    cpus: 1.0
+
+    # =========================================================================
+    # NETWORK
+    # =========================================================================
+
+    networks:
+      - application-network
+
+
+# =============================================================================
+# APPLICATION NETWORK
+# =============================================================================
+
+networks:
+  application-network:
+    # Private bridge network for this Compose project.
+    driver: bridge

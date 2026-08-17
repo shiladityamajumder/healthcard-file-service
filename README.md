@@ -78,7 +78,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The Compose stack starts the file service and MinIO only. It does not create PostgreSQL, database volumes, schemas, tables, or run migrations. Set `DATABASE_URL` to an existing database reachable from the container:
+The Compose stack starts only the file service. It does not create PostgreSQL, MinIO/S3, buckets, database volumes, schemas, tables, or migrations. Configure both `DATABASE_URL` and the `AWS_*` settings for infrastructure reachable from the container:
 
 ```env
 # PostgreSQL on the Docker host

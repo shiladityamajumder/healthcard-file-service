@@ -10,9 +10,9 @@
 
 The file service never provisions the database and never creates schemas/tables or runs migrations. TypeORM synchronization, migration execution, and schema dropping are permanently disabled. Invalid connection configuration fails startup with a sanitized configuration error; an unavailable database causes bounded connection retries followed by startup failure.
 
-## Docker Compose database connections
+## Docker Compose external connections
 
-The default Compose file does not contain PostgreSQL. It passes the externally supplied `DATABASE_URL` into the file-service container and retains MinIO for local object-storage development.
+The Compose file starts only the file-service API. PostgreSQL and S3-compatible storage must be provisioned separately and configured through `.env` with addresses reachable from the container.
 
 ```env
 # PostgreSQL running on the host
